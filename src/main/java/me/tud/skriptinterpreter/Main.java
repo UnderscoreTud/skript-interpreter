@@ -1,10 +1,6 @@
 package me.tud.skriptinterpreter;
 
-import me.tud.skriptinterpreter.context.Context;
-import me.tud.skriptinterpreter.elements.effects.EffPrint;
-import me.tud.skriptinterpreter.elements.expressions.ExprString;
-import me.tud.skriptinterpreter.lang.Effect;
-import me.tud.skriptinterpreter.lang.Expressions;
+import me.tud.skriptinterpreter.patterns.SkriptPattern;
 
 public class Main {
 
@@ -12,10 +8,13 @@ public class Main {
         Skript skript = Skript.create();
         skript.init();
 
-        Context<Object> context = new Context<>(skript, new Object());
-        Effect<Object> effect = new EffPrint<>();
-        effect.init(new Expressions<>(new ExprString<>("test")), skript);
-        effect.execute(context);
+//        Context<Object> context = new Context<>(skript, new Object());
+//        Effect<Object> effect = new EffPrint<>();
+//        effect.init(new Expressions<>(new ExprString<>("test")), skript);
+//        effect.execute(context);
+
+        SkriptPattern pattern = skript.patterCompiler().compile("(hello|hey) there[!]");
+        System.out.println(pattern);
 
         skript.cleanup();
     }

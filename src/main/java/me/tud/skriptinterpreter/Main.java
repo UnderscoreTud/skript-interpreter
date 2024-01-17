@@ -13,7 +13,7 @@ public class Main {
 //        effect.init(new Expressions<>(new ExprString<>("test")), skript);
 //        effect.execute(context);
 
-        SkriptPattern pattern = skript.patterCompiler().compile("(hi\\))");
+        SkriptPattern pattern = skript.patterCompiler().compile("te\\st:hi");
         System.out.println(pattern.head());
 
         skript.cleanup();

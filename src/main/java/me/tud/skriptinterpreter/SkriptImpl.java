@@ -1,9 +1,6 @@
 package me.tud.skriptinterpreter;
 
-import me.tud.skriptinterpreter.patterns.ChoicePatternElement;
-import me.tud.skriptinterpreter.patterns.GroupPatternElement;
-import me.tud.skriptinterpreter.patterns.PatternCompiler;
-import me.tud.skriptinterpreter.patterns.RegexPatternElement;
+import me.tud.skriptinterpreter.patterns.*;
 
 class SkriptImpl implements Skript {
 
@@ -14,8 +11,8 @@ class SkriptImpl implements Skript {
         patternCompiler.register(ChoicePatternElement.COMPILER);
         patternCompiler.register(GroupPatternElement.COMPILER);
         patternCompiler.register(GroupPatternElement.OPTIONAL_COMPILER);
+        patternCompiler.register(ParseTagPatternElement.COMPILER);
         patternCompiler.register(RegexPatternElement.COMPILER);
-        // TODO implement and register
     }
 
     @Override

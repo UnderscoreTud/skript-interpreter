@@ -3,6 +3,8 @@ package me.tud.skriptinterpreter.util;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Objects;
+
 public class StringReader implements Cloneable {
 
     private final String string;
@@ -32,15 +34,31 @@ public class StringReader implements Cloneable {
 
     @Contract(mutates = "this")
     public @Nullable String readEnclosed(char opening, char closing) {
+        return readEnclosed(opening, closing, null);
+    }
+
+    @Contract(mutates = "this")
+    public @Nullable String readEnclosed(char opening, char closing, @Nullable Character escapeChar) {
         if (peek() != opening) return null;
-        int start = cursor + 1, depth = 0;
-        do {
+        skip();
+        StringBuilder builder = new StringBuilder();
+        int depth = 1;
+        boolean escape = false;
+        while (canRead()) {
             char c = read();
+            if (escape) {
+                escape = false;
+                builder.append(c);
+                continue;
+            } else if (Objects.equals(c, escapeChar)) {
+                escape = true;
+                continue;
+            }
             if (c == opening) depth++;
-            else if (c == closing) depth--;
-        } while (depth != 0 && canRead());
-        if (depth != 0) return null;
-        return string.substring(start, cursor - 1);
+            else if (c == closing && --depth == 0) return builder.toString();
+            builder.append(c);
+        }
+        return null;
     }
 
     public char read() {

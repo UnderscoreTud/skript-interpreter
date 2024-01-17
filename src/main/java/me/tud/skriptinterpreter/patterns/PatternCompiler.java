@@ -24,12 +24,22 @@ public class PatternCompiler implements SkriptProperty {
 
     public SkriptPattern compile(String pattern) {
         if (pattern.isEmpty()) return new SkriptPattern("", new LiteralPatternElement(skript, ""));
-        // TODO implement escaping
         StringReader reader = new StringReader(pattern);
         PatternElement first = null, current = null;
-        int previousEnd = 0;
+        StringBuilder lookbehindBuilder = new StringBuilder();
+        boolean escaped = false;
         while (reader.canRead()) {
-            Lookbehind lookbehind = new Lookbehind(reader.getString().substring(previousEnd, reader.cursor()));
+            if (escaped) {
+                escaped = false;
+                lookbehindBuilder.append(reader.read());
+                continue;
+            } else if (reader.peek() == '\\') {
+                escaped = true;
+                reader.skip();
+                continue;
+            }
+            Lookbehind lookbehind = new Lookbehind(lookbehindBuilder.toString());
+
             for (AbstractPatternElement.Compiler<?> compiler : compilers) {
                 StringReader clone = reader.clone();
                 lookbehind.consume = false;
@@ -43,21 +53,22 @@ public class PatternCompiler implements SkriptProperty {
                 current = append(current, element);
                 if (first == null) first = current;
                 reader.cursor(clone.cursor());
-                previousEnd = reader.cursor();
+                lookbehindBuilder = new StringBuilder();
                 break;
             }
-            reader.skip();
+
+            if (reader.canRead()) lookbehindBuilder.append(reader.read());
         }
 
-        if (previousEnd != reader.length())
-            current = append(current, new LiteralPatternElement(skript, pattern.substring(previousEnd)));
+        if (!lookbehindBuilder.isEmpty())
+            current = append(current, new LiteralPatternElement(skript, lookbehindBuilder.toString()));
         if (first == null) first = current;
         return new SkriptPattern(pattern, first);
     }
 
     @Override
     public Skript skript() {
-        return null;
+        return skript;
     }
 
     private static PatternElement append(@Nullable PatternElement first, PatternElement second) {

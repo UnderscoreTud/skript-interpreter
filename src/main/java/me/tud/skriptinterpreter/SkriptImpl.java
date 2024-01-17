@@ -1,6 +1,5 @@
 package me.tud.skriptinterpreter;
 
-import me.tud.skriptinterpreter.log.SkriptLogger;
 import me.tud.skriptinterpreter.patterns.ChoicePatternElement;
 import me.tud.skriptinterpreter.patterns.GroupPatternElement;
 import me.tud.skriptinterpreter.patterns.PatternCompiler;

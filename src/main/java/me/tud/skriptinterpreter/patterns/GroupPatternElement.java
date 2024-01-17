@@ -31,7 +31,7 @@ public class GroupPatternElement extends AbstractPatternElement {
     private static Compiler<GroupPatternElement> compiler(char opening, char closing, boolean optional) {
         return (skript, reader, lookbehind) -> {
             if (reader.peek() != opening) return null;
-            String groupedPattern = reader.readEnclosed(opening, closing);
+            String groupedPattern = reader.readEnclosed(opening, closing, '\\');
             if (groupedPattern == null)
                 // Incorrect amount of braces
                 // TODO maybe throw an exception?

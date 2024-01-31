@@ -1,7 +1,10 @@
 package me.tud.skriptinterpreter.patterns;
 
 import me.tud.skriptinterpreter.Skript;
+import me.tud.skriptinterpreter.util.StringReader;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.Objects;
 
 public abstract class AbstractPatternElement implements PatternElement {
 
@@ -12,16 +15,22 @@ public abstract class AbstractPatternElement implements PatternElement {
         this.skript = skript;
     }
 
+    protected abstract boolean matches(StringReader reader, MatchResult.Builder builder);
+
     @Override
-    public @Nullable PatternElement getNext() {
+    public boolean match(StringReader reader, MatchResult.Builder builder) {
+        return matches(reader, builder) && matchNext(reader, builder);
+    }
+
+    @Override
+    public @Nullable PatternElement next() {
         return next;
     }
 
     @Override
-    public void setNext(@Nullable PatternElement next) {
-        if (this.next != null)
-            throw new IllegalStateException("Pattern Element already has a 'next' element");
-        this.next = next;
+    public void next(PatternElement element) {
+        if (next != null) throw new IllegalStateException("Element '" + this + "' already has a 'next' element");
+        next = Objects.requireNonNull(element, "element");
     }
 
     @Override
@@ -29,7 +38,22 @@ public abstract class AbstractPatternElement implements PatternElement {
         return skript;
     }
 
+    protected boolean matchNext(StringReader reader, MatchResult.Builder builder) {
+        return next != null ? next.match(reader, builder) : !reader.canRead();
+    }
+
     @Override
     public abstract String toString();
+
+    @Override
+    public String toFullString() {
+        StringBuilder builder = new StringBuilder();
+        PatternElement current = this;
+        while (current != null) {
+            builder.append(current);
+            current = current.next();
+        }
+        return builder.toString();
+    }
 
 }

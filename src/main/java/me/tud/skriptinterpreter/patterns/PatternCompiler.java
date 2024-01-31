@@ -23,11 +23,12 @@ public class PatternCompiler implements SkriptProperty {
     }
 
     public SkriptPattern compile(String pattern) {
-        if (pattern.isEmpty()) return new SkriptPattern("", new LiteralPatternElement(skript, ""));
+        SkriptPattern compiledPattern = new SkriptPattern(skript);
+        if (pattern.isEmpty()) return compiledPattern.append(new LiteralPatternElement(skript, ""));
         StringReader reader = new StringReader(pattern);
-        PatternElement first = null, current = null;
         StringBuilder lookbehindBuilder = new StringBuilder();
         boolean escaped = false;
+        outer:
         while (reader.canRead()) {
             if (escaped) {
                 escaped = false;
@@ -43,37 +44,28 @@ public class PatternCompiler implements SkriptProperty {
             for (AbstractPatternElement.Compiler<?> compiler : compilers) {
                 StringReader clone = reader.clone();
                 lookbehind.consume = false;
-                PatternElement element = compiler.compile(skript, clone, lookbehind);
+                PatternElement element = compiler.compile(compiledPattern, clone, lookbehind);
                 if (element == null) continue;
 
-                if (!lookbehind.consume && !lookbehind.get().isEmpty()) {
-                    current = append(current, new LiteralPatternElement(skript, lookbehind.get()));
-                    if (first == null) first = current;
-                }
-                current = append(current, element);
-                if (first == null) first = current;
+                if (!lookbehind.consume && !lookbehind.get().isEmpty())
+                    compiledPattern.append(new LiteralPatternElement(skript, lookbehind.get()));
+                compiledPattern.append(element);
                 reader.cursor(clone.cursor());
                 lookbehindBuilder = new StringBuilder();
-                break;
+                continue outer;
             }
 
             if (reader.canRead()) lookbehindBuilder.append(reader.read());
         }
 
         if (!lookbehindBuilder.isEmpty())
-            current = append(current, new LiteralPatternElement(skript, lookbehindBuilder.toString()));
-        if (first == null) first = current;
-        return new SkriptPattern(pattern, first);
+            compiledPattern.append(new LiteralPatternElement(skript, lookbehindBuilder.toString()));
+        return compiledPattern;
     }
 
     @Override
     public Skript skript() {
         return skript;
-    }
-
-    private static PatternElement append(@Nullable PatternElement first, PatternElement second) {
-        if (first != null) first.setNext(second);
-        return second;
     }
 
     public static class Lookbehind {

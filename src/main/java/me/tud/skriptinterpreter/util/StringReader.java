@@ -4,6 +4,7 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Objects;
+import java.util.function.Predicate;
 
 public class StringReader implements Cloneable {
 
@@ -32,6 +33,13 @@ public class StringReader implements Cloneable {
         this.cursor = cursor;
     }
 
+    public String readUntil(Predicate<Character> predicate) {
+        int start = cursor;
+        while (canRead() && !predicate.test(peek()))
+            skip();
+        return string.substring(start, cursor);
+    }
+
     @Contract(mutates = "this")
     public @Nullable String readEnclosed(char opening, char closing) {
         return readEnclosed(opening, closing, null);
@@ -50,7 +58,7 @@ public class StringReader implements Cloneable {
                 escape = false;
                 builder.append(c);
                 continue;
-            } else if (Objects.equals(c, escapeChar)) {
+            } else if (canRead() && Objects.equals(c, escapeChar) && (peek() == opening || peek() == closing)) {
                 escape = true;
                 continue;
             }

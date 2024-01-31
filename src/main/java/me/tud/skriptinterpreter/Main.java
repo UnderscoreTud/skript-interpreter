@@ -1,5 +1,7 @@
 package me.tud.skriptinterpreter;
 
+import me.tud.skriptinterpreter.patterns.MatchResult;
+import me.tud.skriptinterpreter.patterns.ParseTagPatternElement;
 import me.tud.skriptinterpreter.patterns.SkriptPattern;
 
 public class Main {
@@ -13,8 +15,12 @@ public class Main {
 //        effect.init(new Expressions<>(new ExprString<>("test")), skript);
 //        effect.execute(context);
 
-        SkriptPattern pattern = skript.patterCompiler().compile("te\\st:hi");
-        System.out.println(pattern.head());
+        SkriptPattern pattern = skript.patterCompiler().compile(":(hi|hey|hello [bye])");
+        System.out.println(pattern);
+        MatchResult result = pattern.match("hello bye");
+        System.out.println(result == null ? "failed" : "succeeded");
+        if (result == null) return;
+        System.out.println(result.getDataContainer(ParseTagPatternElement.TagData.class));
 
         skript.cleanup();
     }

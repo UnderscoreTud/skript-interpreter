@@ -1,34 +1,69 @@
 package me.tud.skriptinterpreter.patterns;
 
 import me.tud.skriptinterpreter.Skript;
-import org.jetbrains.annotations.Nullable;
+import me.tud.skriptinterpreter.util.StringReader;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class ChoicePatternElement extends AbstractPatternElement {
 
-    public static final Compiler<ChoicePatternElement> COMPILER = (skript, reader, lookbehind) -> {
+    public static final Compiler<ChoicePatternElement> COMPILER = (pattern, reader, lookbehind) -> {
         if (reader.read() != '|') return null;
+        Skript skript = pattern.skript();
         PatternCompiler compiler = skript.patterCompiler();
-        SkriptPattern left = compiler.compile(lookbehind.consume());
+
+        SkriptPattern left = new SkriptPattern(skript, pattern.head());
+        left.append(new LiteralPatternElement(skript, lookbehind.consume()));
+
         SkriptPattern right = compiler.compile(reader.finish());
-        return new ChoicePatternElement(skript, left, right);
+
+        pattern.clear();
+        return new ChoicePatternElement(skript, getAllChoices(left, right));
     };
 
-    private final SkriptPattern left, right;
+    private final List<PatternElement> choices;
 
-    public ChoicePatternElement(Skript skript, SkriptPattern left, SkriptPattern right) {
+    public ChoicePatternElement(Skript skript, List<PatternElement> choices) {
         super(skript);
-        this.left = left;
-        this.right = right;
+        this.choices = choices;
     }
 
     @Override
-    public @Nullable MatchResult match(String input, MatchResult match) {
-        return null;
+    protected boolean matches(StringReader reader, MatchResult.Builder builder) {
+        MatchResult.Builder copy = MatchResult.fromBuilder(builder);
+        int start = reader.cursor();
+        for (PatternElement choice : choices) {
+            if (choice.match(reader, copy)) {
+                builder.combine(copy);
+                return true;
+            }
+            reader.cursor(start);
+            copy.clear();
+        }
+        return false;
     }
 
+    @Override
+    public boolean match(StringReader reader, MatchResult.Builder builder) {
+        return matches(reader, builder);
+    }
+    
+    public List<PatternElement> choices() {
+        return choices;
+    }
+    
     @Override
     public String toString() {
-        return left + "|" + right;
+        return String.join("|", choices.stream().map(PatternElement::toFullString).toList());
+    }
+
+    private static List<PatternElement> getAllChoices(SkriptPattern left, SkriptPattern right) {
+        if (!(right.head() instanceof ChoicePatternElement inner)) return List.of(left.head(), right.head());
+        List<PatternElement> choices = new ArrayList<>();
+        choices.add(left.head());
+        choices.addAll(inner.choices);
+        return choices;
     }
 
 }

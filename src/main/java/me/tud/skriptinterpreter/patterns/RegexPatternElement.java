@@ -3,6 +3,8 @@ package me.tud.skriptinterpreter.patterns;
 import me.tud.skriptinterpreter.Skript;
 import me.tud.skriptinterpreter.util.StringReader;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -35,7 +37,7 @@ public class RegexPatternElement extends AbstractPatternElement {
             StringReader newReader = reader.clone();
             MatchResult.Builder newBuilder = MatchResult.fromBuilder(builder);
             if (!matchNext(newReader, newBuilder)) continue;
-            builder.addData(new Data(matcher.toMatchResult()));
+            builder.getOrCreateData(Data.class, Data::new).results().add(matcher.toMatchResult());
             reader.cursor(newReader.cursor());
             builder.combine(newBuilder);
             return true;
@@ -57,6 +59,17 @@ public class RegexPatternElement extends AbstractPatternElement {
         return "<" + regexPattern.pattern() + ">";
     }
 
-    public record Data(java.util.regex.MatchResult result) implements MatchResult.Data {}
+    public record Data(List<java.util.regex.MatchResult> results) implements MatchResult.Data {
+
+        public Data() {
+            this(new ArrayList<>());
+        }
+
+        @Override
+        public void combine(MatchResult.Data other) {
+            if (other instanceof Data otherData) results().addAll(otherData.results());
+        }
+
+    }
 
 }

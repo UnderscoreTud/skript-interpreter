@@ -39,7 +39,7 @@ public abstract class AbstractPatternElement implements PatternElement {
     }
 
     protected boolean matchNext(StringReader reader, MatchResult.Builder builder) {
-        return next != null ? next.match(reader, builder) : !reader.canRead();
+        return next == null || next.match(reader, builder);
     }
 
     @Override

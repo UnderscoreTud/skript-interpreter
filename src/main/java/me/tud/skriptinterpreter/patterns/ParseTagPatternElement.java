@@ -3,6 +3,8 @@ package me.tud.skriptinterpreter.patterns;
 import me.tud.skriptinterpreter.Skript;
 import me.tud.skriptinterpreter.util.StringReader;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.ListIterator;
 
 public class ParseTagPatternElement extends AbstractPatternElement {
@@ -28,7 +30,8 @@ public class ParseTagPatternElement extends AbstractPatternElement {
 
     @Override
     protected boolean matches(StringReader reader, MatchResult.Builder builder) {
-        if (tag != null && !tag.isEmpty()) builder.addData(new TagData(tag));
+        if (tag != null && !tag.isEmpty())
+            builder.getOrCreateData(TagData.class, TagData::new).tags.add(tag);
         builder.getOrCreateData(MarkData.class, MarkData::new).apply(mark);
         return true;
     }
@@ -84,7 +87,18 @@ public class ParseTagPatternElement extends AbstractPatternElement {
         return tag != null ? tag + ":" : "";
     }
 
-    public record TagData(String tag) implements MatchResult.Data {}
+    public record TagData(List<String> tags) implements MatchResult.Data {
+
+        public TagData() {
+            this(new ArrayList<>());
+        }
+
+        @Override
+        public void combine(MatchResult.Data other) {
+            if (other instanceof TagData otherTag) tags().addAll(otherTag.tags());
+        }
+
+    }
 
     public static class MarkData implements MatchResult.Data {
 
@@ -96,6 +110,11 @@ public class ParseTagPatternElement extends AbstractPatternElement {
 
         private void apply(int mark) {
             this.mark ^= mark;
+        }
+
+        @Override
+        public void combine(MatchResult.Data other) {
+            if (other instanceof MarkData otherMark) apply(otherMark.mark());
         }
 
     }

@@ -13,4 +13,8 @@ public class Expressions<S> {
         return expressions[position].asSubtype(type);
     }
 
+    public Expression<S, ?>[] getAll() {
+        return expressions;
+    }
+
 }

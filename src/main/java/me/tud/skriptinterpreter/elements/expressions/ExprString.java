@@ -4,6 +4,7 @@ import me.tud.skriptinterpreter.Skript;
 import me.tud.skriptinterpreter.context.Context;
 import me.tud.skriptinterpreter.lang.AbstractExpression;
 import me.tud.skriptinterpreter.lang.Expressions;
+import me.tud.skriptinterpreter.patterns.MatchResult;
 import me.tud.skriptinterpreter.util.Result;
 
 public class ExprString<S> extends AbstractExpression<S, String> {
@@ -15,7 +16,7 @@ public class ExprString<S> extends AbstractExpression<S, String> {
     }
 
     @Override
-    public boolean init(Expressions<S> expressions, Skript skript) {
+    public boolean init(Skript skript, Expressions<S> expressions, MatchResult matchResult) {
         return true;
     }
 

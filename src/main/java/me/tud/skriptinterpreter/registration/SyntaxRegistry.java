@@ -17,7 +17,7 @@ public interface SyntaxRegistry<E extends SyntaxElement<?>> extends
     List<SyntaxInfo<? extends E>> syntaxes();
 
     @SuppressWarnings("unchecked")
-    @Contract(value = "_, _ -> new", pure = true)
+    @Contract("_, _ -> new")
     static <E extends SyntaxElement<?>, R extends SyntaxRegistry<? extends E>> R of(Skript skript, Class<E> elementType) {
         return (R) new SyntaxRegistryImpl<>(skript, elementType);
     }
@@ -37,5 +37,5 @@ public interface SyntaxRegistry<E extends SyntaxElement<?>> extends
         SkriptPattern[] patterns();
 
     }
-    
+
 }

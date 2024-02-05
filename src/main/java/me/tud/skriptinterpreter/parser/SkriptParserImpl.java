@@ -1,10 +1,7 @@
 package me.tud.skriptinterpreter.parser;
 
 import me.tud.skriptinterpreter.Skript;
-import me.tud.skriptinterpreter.lang.AbstractExpression;
-import me.tud.skriptinterpreter.lang.Expression;
-import me.tud.skriptinterpreter.lang.Expressions;
-import me.tud.skriptinterpreter.lang.SyntaxElement;
+import me.tud.skriptinterpreter.lang.*;
 import me.tud.skriptinterpreter.patterns.MatchResult;
 import me.tud.skriptinterpreter.patterns.SkriptPattern;
 import me.tud.skriptinterpreter.registration.SyntaxRegistry;
@@ -38,10 +35,9 @@ record SkriptParserImpl(Skript skript, String input, EnumSet<Flag> flags) implem
     }
 
     private boolean isValidExpression(Expression<?, ?> expression) {
-        // TODO replace with literal
-        return expression instanceof AbstractExpression<?, ?> ? hasFlag(Flag.PARSE_LITERALS) : hasFlag(Flag.PARSE_NONLITERALS);
+        return expression instanceof Literal<?, ?> ? hasFlag(Flag.PARSE_LITERALS) : hasFlag(Flag.PARSE_NONLITERALS);
     }
-    
+ 
     private record ParseResult<S>(S element, MatchResult matchResult) {}
 
 }

@@ -4,7 +4,7 @@ import me.tud.skriptinterpreter.Skript;
 import me.tud.skriptinterpreter.context.Context;
 import me.tud.skriptinterpreter.lang.AbstractExpression;
 import me.tud.skriptinterpreter.lang.Expressions;
-import org.jetbrains.annotations.Nullable;
+import me.tud.skriptinterpreter.util.Result;
 
 public class ExprString<S> extends AbstractExpression<S, String> {
 
@@ -20,8 +20,8 @@ public class ExprString<S> extends AbstractExpression<S, String> {
     }
 
     @Override
-    public String @Nullable [] get(Context<S> context) {
-        return new String[]{string};
+    public Result<String> get(Context<S> context) {
+        return Result.numbered(String[]::new, string);
     }
 
     @Override

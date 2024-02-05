@@ -6,8 +6,6 @@ import me.tud.skriptinterpreter.lang.AbstractEffect;
 import me.tud.skriptinterpreter.lang.Expression;
 import me.tud.skriptinterpreter.lang.Expressions;
 
-import java.util.logging.Level;
-
 public class EffPrint<S> extends AbstractEffect<S> {
 
     private Expression<S, String> string;
@@ -20,7 +18,7 @@ public class EffPrint<S> extends AbstractEffect<S> {
 
     @Override
     public void execute(Context<S> context) {
-        System.out.println(string.getSingle(context));
+        System.out.println(string.get(context).getSingle());
     }
 
 }

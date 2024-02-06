@@ -29,7 +29,7 @@ public class ParseTagPatternElement extends AbstractPatternElement {
     }
 
     @Override
-    protected boolean matches(StringReader reader, MatchResult.Builder builder) {
+    protected boolean matches(StringReader reader, MatchResult.Builder builder, boolean exhaust) {
         if (tag != null && !tag.isEmpty())
             builder.getOrCreateData(TagData.class, TagData::new).tags.add(tag);
         builder.getOrCreateData(MarkData.class, MarkData::new).apply(mark);

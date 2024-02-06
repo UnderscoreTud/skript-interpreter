@@ -25,7 +25,7 @@ public class RegexPatternElement extends AbstractPatternElement {
     }
 
     @Override
-    protected boolean matches(StringReader reader, MatchResult.Builder builder) {
+    protected boolean matches(StringReader reader, MatchResult.Builder builder, boolean exhaust) {
         Matcher matcher = regexPattern.matcher(reader.getString());
         int start = reader.cursor();
         // if this is the last element then just match the rest of the string with the regex pattern
@@ -36,7 +36,7 @@ public class RegexPatternElement extends AbstractPatternElement {
             if (!matcher.matches()) continue;
             StringReader newReader = reader.clone();
             MatchResult.Builder newBuilder = MatchResult.fromBuilder(builder);
-            if (!matchNext(newReader, newBuilder)) continue;
+            if (!matchNext(newReader, newBuilder, exhaust)) continue;
             builder.getOrCreateData(Data.class, Data::new).results().add(matcher.toMatchResult());
             reader.cursor(newReader.cursor());
             builder.combine(newBuilder);
@@ -46,8 +46,8 @@ public class RegexPatternElement extends AbstractPatternElement {
     }
 
     @Override
-    public boolean match(StringReader reader, MatchResult.Builder builder) {
-        return matches(reader, builder);
+    public boolean match(StringReader reader, MatchResult.Builder builder, boolean exhaust) {
+        return matches(reader, builder, exhaust);
     }
 
     public Pattern regexPattern() {

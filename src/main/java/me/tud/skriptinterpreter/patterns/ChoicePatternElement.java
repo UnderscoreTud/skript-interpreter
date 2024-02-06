@@ -30,11 +30,11 @@ public class ChoicePatternElement extends AbstractPatternElement {
     }
 
     @Override
-    protected boolean matches(StringReader reader, MatchResult.Builder builder) {
+    protected boolean matches(StringReader reader, MatchResult.Builder builder, boolean exhaust) {
         MatchResult.Builder copy = MatchResult.fromBuilder(builder);
         int start = reader.cursor();
         for (PatternElement choice : choices) {
-            if (choice.match(reader, copy)) {
+            if (choice.match(reader, copy, false)) {
                 builder.combine(copy);
                 return true;
             }
@@ -45,8 +45,8 @@ public class ChoicePatternElement extends AbstractPatternElement {
     }
 
     @Override
-    public boolean match(StringReader reader, MatchResult.Builder builder) {
-        return matches(reader, builder);
+    public boolean match(StringReader reader, MatchResult.Builder builder, boolean exhaust) {
+        return matches(reader, builder, exhaust);
     }
     
     public List<PatternElement> choices() {

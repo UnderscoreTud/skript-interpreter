@@ -33,7 +33,7 @@ public final class SkriptPattern implements SkriptProperty {
     }
 
     public @Nullable MatchResult match(StringReader reader, MatchResult.Builder builder) {
-        if (!head.match(reader, builder) || reader.canRead()) return null;
+        if (!head.match(reader, builder, true) || reader.canRead()) return null;
         return builder.build();
     }
 

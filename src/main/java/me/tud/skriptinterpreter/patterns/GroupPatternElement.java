@@ -18,10 +18,10 @@ public class GroupPatternElement extends AbstractPatternElement {
     }
 
     @Override
-    protected boolean matches(StringReader reader, MatchResult.Builder builder) {
+    protected boolean matches(StringReader reader, MatchResult.Builder builder, boolean exhaust) {
         MatchResult.Builder copy = MatchResult.fromBuilder(builder);
         int start = reader.cursor();
-        if (pattern.head().match(reader, copy)) {
+        if (pattern.head().match(reader, copy, false)) {
             builder.combine(copy);
             return true;
         }

@@ -9,6 +9,10 @@ public class Expressions<S> {
         this.expressions = expressions;
     }
 
+    public Expression<S, ?> get(int position) {
+        return expressions[position];
+    }
+
     public <T> Expression<S, T> get(int position, Class<T> type) {
         return expressions[position].asSubtype(type);
     }

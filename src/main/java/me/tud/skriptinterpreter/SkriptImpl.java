@@ -14,6 +14,7 @@ class SkriptImpl implements Skript {
     @Override
     public void init() {
         patternCompiler.register(ChoicePatternElement.COMPILER);
+        patternCompiler.register(ExpressionPatternElement.COMPILER);
         patternCompiler.register(GroupPatternElement.COMPILER);
         patternCompiler.register(GroupPatternElement.OPTIONAL_COMPILER);
         patternCompiler.register(ParseTagPatternElement.COMPILER);

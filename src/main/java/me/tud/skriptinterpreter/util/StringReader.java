@@ -17,7 +17,7 @@ public class StringReader implements Cloneable {
         this.length = string.length();
     }
 
-    public String getString() {
+    public String input() {
         return string;
     }
 
@@ -62,8 +62,8 @@ public class StringReader implements Cloneable {
                 escape = true;
                 continue;
             }
-            if (c == opening) depth++;
-            else if (c == closing && --depth == 0) return builder.toString();
+            if (c == closing && --depth == 0) return builder.toString();
+            else if (c == opening) depth++;
             builder.append(c);
         }
         return null;

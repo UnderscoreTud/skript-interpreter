@@ -26,7 +26,7 @@ public class RegexPatternElement extends AbstractPatternElement {
 
     @Override
     protected boolean matches(StringReader reader, MatchResult.Builder builder, boolean exhaust) {
-        Matcher matcher = regexPattern.matcher(reader.getString());
+        Matcher matcher = regexPattern.matcher(reader.input());
         int start = reader.cursor();
         // if this is the last element then just match the rest of the string with the regex pattern
         if (next() == null) reader.cursor(reader.length() - 1);

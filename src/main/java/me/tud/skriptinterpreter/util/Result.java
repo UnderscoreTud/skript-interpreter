@@ -87,7 +87,7 @@ public abstract sealed class Result<T> permits Result.Keyed, Result.Numbered {
 
         @Override
         public boolean isSingle() {
-            return values.length == 1;
+            return values.length <= 1;
         }
 
         @Override
@@ -141,7 +141,7 @@ public abstract sealed class Result<T> permits Result.Keyed, Result.Numbered {
 
         @Override
         public boolean isSingle() {
-            return values.size() == 1;
+            return values.size() <= 1;
         }
 
         @Override

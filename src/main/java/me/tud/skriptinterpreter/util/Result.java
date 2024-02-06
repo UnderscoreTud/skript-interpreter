@@ -1,5 +1,6 @@
 package me.tud.skriptinterpreter.util;
 
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -30,15 +31,24 @@ public abstract sealed class Result<T> permits Result.Keyed, Result.Numbered {
 
     public abstract Map<String, T> getKeyed();
 
-    @SafeVarargs
-    @SuppressWarnings("unchecked")
-    public static <T> Result<T> numbered(T @NotNull ... values) {
-        return numbered(size -> (T[]) CollectionUtils.newArray(values.getClass().componentType(), size), values);
+    @Contract("_ -> new")
+    public static <T> Result<T> empty(IntFunction<T[]> arrayGenerator) {
+        return of(arrayGenerator);
     }
 
     @SafeVarargs
-    public static <T> Result<T> numbered(IntFunction<T[]> arrayGenerator, T @NotNull ... values) {
+    @SuppressWarnings("unchecked")
+    @Contract("_ -> new")
+    public static <T> Result<T> of(T @NotNull ... values) {
+        return of(size -> (T[]) CollectionUtils.newArray(values.getClass().componentType(), size), values);
+    }
+
+    @SafeVarargs
+    @Contract("_, _ -> new")
+    public static <T> Result<T> of(IntFunction<T[]> arrayGenerator, T @NotNull ... values) {
+        Objects.requireNonNull(arrayGenerator, "array generator cannot be null");
         Objects.requireNonNull(values, "values array cannot be null");
+        if (values.length == 0) return new Numbered<>(values);
         List<T> list = new ArrayList<>(values.length);
         for (T value : values)
             if (value != null) list.add(value);

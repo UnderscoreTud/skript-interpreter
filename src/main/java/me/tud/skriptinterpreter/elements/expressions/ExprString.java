@@ -22,7 +22,7 @@ public class ExprString<S> extends AbstractExpression<S, String> {
 
     @Override
     public Result<String> get(Context<S> context) {
-        return Result.numbered(String[]::new, string);
+        return Result.of(String[]::new, string);
     }
 
     @Override

@@ -16,7 +16,7 @@ public class ExprTest<S> extends AbstractExpression<S, String> {
 
     @Override
     public Result<String> get(Context<S> context) {
-        return Result.numbered("test");
+        return Result.of("test");
     }
 
     @Override

@@ -20,7 +20,7 @@ public class ExprTest2<S> extends AbstractExpression<S, String> {
 
     @Override
     public Result<String> get(Context<S> context) {
-        return Result.numbered(value);
+        return Result.of(value);
     }
 
     @Override

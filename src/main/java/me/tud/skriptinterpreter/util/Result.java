@@ -59,6 +59,7 @@ public abstract sealed class Result<T> permits Result.Keyed, Result.Numbered {
 
     @SafeVarargs
     public static <T> Result<T> keyed(IntFunction<T[]> arrayGenerator, Map.Entry<String, T> @NotNull ... values) {
+        Objects.requireNonNull(arrayGenerator, "array generator cannot be null");
         Objects.requireNonNull(values, "values array cannot be null");
         Map<String, T> map = new LinkedHashMap<>();
         for (Map.Entry<String, T> value : values)

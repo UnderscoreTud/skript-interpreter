@@ -5,6 +5,7 @@ import me.tud.skriptinterpreter.lang.*;
 import me.tud.skriptinterpreter.patterns.MatchResult;
 import me.tud.skriptinterpreter.patterns.SkriptPattern;
 import me.tud.skriptinterpreter.registration.SyntaxRegistry;
+import me.tud.skriptinterpreter.util.StringReader;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.EnumSet;
@@ -19,6 +20,7 @@ record SkriptParserImpl(Skript skript, String input, EnumSet<Flag> flags) implem
             ParseResult<? extends S> result = parse(info);
             if (result == null) continue;
             if (result.element() instanceof Expression<?, ?> expr && !isValidExpression(expr)) continue;
+            if (result.matchResult() == null) return result.element();
             if (!result.element().init(skript, new Expressions<>(), result.matchResult())) continue;
             return result.element();
         }
@@ -26,6 +28,12 @@ record SkriptParserImpl(Skript skript, String input, EnumSet<Flag> flags) implem
     }
 
     private <S extends SyntaxElement<?>> @Nullable ParseResult<S> parse(SyntaxRegistry.SyntaxInfo<S> info) {
+        if (info.parser() != null) {
+            StringReader reader = new StringReader(input);
+            S element = info.parser().parse(this, reader);
+            if (element == null || reader.canRead()) return null;
+            return new ParseResult<>(element, null);
+        }
         for (SkriptPattern pattern : info.patterns()) {
             MatchResult result = pattern.match(input);
             if (result == null) continue;
@@ -37,7 +45,7 @@ record SkriptParserImpl(Skript skript, String input, EnumSet<Flag> flags) implem
     private boolean isValidExpression(Expression<?, ?> expression) {
         return expression instanceof Literal<?, ?> ? hasFlag(Flag.PARSE_LITERALS) : hasFlag(Flag.PARSE_NONLITERALS);
     }
- 
+
     private record ParseResult<S>(S element, MatchResult matchResult) {}
 
 }

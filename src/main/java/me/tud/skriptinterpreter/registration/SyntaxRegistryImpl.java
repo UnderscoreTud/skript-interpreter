@@ -4,6 +4,7 @@ import me.tud.skriptinterpreter.Skript;
 import me.tud.skriptinterpreter.lang.SyntaxElement;
 import me.tud.skriptinterpreter.patterns.SkriptPattern;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.function.Supplier;
@@ -25,6 +26,16 @@ class SyntaxRegistryImpl<E extends SyntaxElement<?>> implements SyntaxRegistry<E
     }
 
     @Override
+    public <T extends E> void register(Class<T> elementType, SyntaxElement.Parser<? extends T> parser) {
+        factories.put(elementType,  new SyntaxInfoImpl<>(skript, elementType, parser));
+    }
+
+    @Override
+    public Class<E> elementType() {
+        return elementType;
+    }
+
+    @Override
     public List<SyntaxInfo<? extends E>> syntaxes() {
         return List.copyOf(factories.values());
     }
@@ -43,6 +54,7 @@ class SyntaxRegistryImpl<E extends SyntaxElement<?>> implements SyntaxRegistry<E
 
         private final Skript skript;
         private final Class<T> type;
+        private final @Nullable SyntaxElement.Parser<? extends T> parser;
         private final Supplier<T> factory;
         private final String[] rawPatterns;
         private final SkriptPattern[] patterns;
@@ -50,6 +62,7 @@ class SyntaxRegistryImpl<E extends SyntaxElement<?>> implements SyntaxRegistry<E
         private SyntaxInfoImpl(Skript skript, Class<T> type, Supplier<T> factory, String[] patterns) {
             this.skript = skript;
             this.type = type;
+            this.parser = null;
             this.factory = factory;
             this.rawPatterns = patterns;
             this.patterns = new SkriptPattern[patterns.length];
@@ -57,9 +70,23 @@ class SyntaxRegistryImpl<E extends SyntaxElement<?>> implements SyntaxRegistry<E
                 this.patterns[i] = skript.patterCompiler().compile(patterns[i]);
         }
 
+        private SyntaxInfoImpl(Skript skript, Class<T> type, @Nullable SyntaxElement.Parser<? extends T> parser) {
+            this.skript = skript;
+            this.type = type;
+            this.parser = parser;
+            this.factory = null;
+            this.rawPatterns = null;
+            this.patterns = null;
+        }
+
         @Override
         public Class<T> type() {
             return type;
+        }
+
+        @Override
+        public SyntaxElement.@Nullable Parser<? extends T> parser() {
+            return parser;
         }
 
         @Override

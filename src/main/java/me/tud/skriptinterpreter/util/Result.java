@@ -68,6 +68,7 @@ public abstract sealed class Result<T> permits Result.Keyed, Result.Numbered {
     }
 
     public static <T> Result<T> keyed(IntFunction<T[]> arrayGenerator, Map<String, T> values) {
+        Objects.requireNonNull(arrayGenerator, "array generator cannot be null");
         Objects.requireNonNull(values, "values map cannot be null");
         return new Keyed<>(arrayGenerator, values);
     }

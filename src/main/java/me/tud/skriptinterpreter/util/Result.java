@@ -3,6 +3,7 @@ package me.tud.skriptinterpreter.util;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Unmodifiable;
 
 import java.util.*;
 import java.util.function.IntFunction;
@@ -108,16 +109,15 @@ public abstract sealed class Result<T> permits Result.Keyed, Result.Numbered {
 
         @Override
         public T[] getArray() {
-            return values;
+            return values.clone();
         }
 
         @Override
         public Map<String, T> getKeyed() {
-            if (keyedMap == null) {
-                keyedMap = new LinkedHashMap<>();
-                for (int i = 0; i < values.length; i++)
-                    keyedMap.put((i + 1) + "", values[i]);
-            }
+            if (keyedMap != null) return keyedMap;
+            keyedMap = new LinkedHashMap<>();
+            for (int i = 0; i < values.length; i++)
+                keyedMap.put((i + 1) + "", values[i]);
             return keyedMap;
         }
 
@@ -163,19 +163,18 @@ public abstract sealed class Result<T> permits Result.Keyed, Result.Numbered {
 
         @Override
         public T[] getArray() {
-            if (arrayValues == null) {
-                arrayValues = arrayGenerator.apply(values.size());
-                Iterator<T> iterator = values.values().iterator();
-                int index = 0;
-                while (iterator.hasNext())
-                    arrayValues[index++] = iterator.next();
-            }
+            if (arrayValues != null) return arrayValues;
+            arrayValues = arrayGenerator.apply(values.size());
+            Iterator<T> iterator = values.values().iterator();
+            int index = 0;
+            while (iterator.hasNext())
+                arrayValues[index++] = iterator.next();
             return arrayValues;
         }
 
         @Override
-        public Map<String, T> getKeyed() {
-            return values;
+        public @Unmodifiable Map<String, T> getKeyed() {
+            return Map.copyOf(values);
         }
 
     }

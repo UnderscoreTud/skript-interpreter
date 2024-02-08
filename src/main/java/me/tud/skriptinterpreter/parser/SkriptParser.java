@@ -8,6 +8,7 @@ import me.tud.skriptinterpreter.registration.SyntaxRegistry;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.Iterator;
+import java.util.function.Predicate;
 
 public interface SkriptParser extends SkriptProperty {
 
@@ -15,7 +16,15 @@ public interface SkriptParser extends SkriptProperty {
         return parse(registry.iterator());
     }
 
-    <S extends SyntaxElement<?>> S parse(Iterator<SyntaxRegistry.SyntaxInfo<? extends S>> iterator);
+    default <S extends SyntaxElement<?>> S parse(SyntaxRegistry<S> registry, Predicate<S> predicate) {
+        return parse(registry.iterator(), predicate);
+    }
+
+    default <S extends SyntaxElement<?>> S parse(Iterator<SyntaxRegistry.SyntaxInfo<? extends S>> iterator) {
+        return parse(iterator, element -> true);
+    }
+
+    <S extends SyntaxElement<?>> S parse(Iterator<SyntaxRegistry.SyntaxInfo<? extends S>> iterator, Predicate<S> predicate);
 
     String input();
 
@@ -23,6 +32,10 @@ public interface SkriptParser extends SkriptProperty {
 
     default boolean hasFlag(Flag flag) {
         return flags().contains(flag);
+    }
+
+    default SkriptParser withInput(String input) {
+        return create(skript(), input, flags());
     }
 
     default SkriptParser withFlags(Flag... flags) {

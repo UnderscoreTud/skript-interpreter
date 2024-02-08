@@ -10,18 +10,19 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.EnumSet;
 import java.util.Iterator;
+import java.util.function.Predicate;
 
 record SkriptParserImpl(Skript skript, String input, EnumSet<Flag> flags) implements SkriptParser {
 
     @Override
-    public <S extends SyntaxElement<?>> S parse(Iterator<SyntaxRegistry.SyntaxInfo<? extends S>> iterator) {
+    public <S extends SyntaxElement<?>> S parse(Iterator<SyntaxRegistry.SyntaxInfo<? extends S>> iterator, Predicate<S> predicate) {
         while (iterator.hasNext()) {
             SyntaxRegistry.SyntaxInfo<? extends S> info = iterator.next();
             ParseResult<? extends S> result = parse(info);
             if (result == null) continue;
             if (result.element() instanceof Expression<?, ?> expr && !isValidExpression(expr)) continue;
-            if (result.matchResult() == null) return result.element();
-            if (!result.element().init(skript, new Expressions<>(), result.matchResult())) continue;
+            if (!predicate.test(result.element())) continue;
+            if (!result.init(skript)) continue;
             return result.element();
         }
         return null;

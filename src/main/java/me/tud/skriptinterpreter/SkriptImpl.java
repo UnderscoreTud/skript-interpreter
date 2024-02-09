@@ -4,12 +4,14 @@ import me.tud.skriptinterpreter.lang.Effect;
 import me.tud.skriptinterpreter.lang.Expression;
 import me.tud.skriptinterpreter.patterns.*;
 import me.tud.skriptinterpreter.registration.SyntaxRegistry;
+import me.tud.skriptinterpreter.registration.TypeRegistry;
 
 class SkriptImpl implements Skript {
 
-    private final PatternCompiler patternCompiler = new PatternCompiler(this);
     private final SyntaxRegistry<Expression<?, ?>> expressions = SyntaxRegistry.of(this, Expression.class);
     private final SyntaxRegistry<Effect<?>> effects = SyntaxRegistry.of(this, Effect.class);
+    private final TypeRegistry typeRegistry = TypeRegistry.create(this);
+    private final PatternCompiler patternCompiler = new PatternCompiler(this);
 
     @Override
     public void init() {
@@ -33,6 +35,11 @@ class SkriptImpl implements Skript {
     @Override
     public SyntaxRegistry<Effect<?>> effects() {
         return effects;
+    }
+
+    @Override
+    public TypeRegistry typeRegistry() {
+        return typeRegistry;
     }
 
     @Override

@@ -2,6 +2,7 @@ package me.tud.skriptinterpreter.parser;
 
 import me.tud.skriptinterpreter.Skript;
 import me.tud.skriptinterpreter.lang.*;
+import me.tud.skriptinterpreter.patterns.ExpressionPatternElement;
 import me.tud.skriptinterpreter.patterns.MatchResult;
 import me.tud.skriptinterpreter.patterns.SkriptPattern;
 import me.tud.skriptinterpreter.registration.SyntaxRegistry;
@@ -10,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.EnumSet;
 import java.util.Iterator;
+import java.util.Optional;
 import java.util.function.Predicate;
 
 record SkriptParserImpl(Skript skript, String input, EnumSet<Flag> flags) implements SkriptParser {
@@ -44,9 +46,21 @@ record SkriptParserImpl(Skript skript, String input, EnumSet<Flag> flags) implem
     }
 
     private boolean isValidExpression(Expression<?, ?> expression) {
-        return expression instanceof Literal<?, ?> ? hasFlag(Flag.PARSE_LITERALS) : hasFlag(Flag.PARSE_NONLITERALS);
+        return expression instanceof Literal<?, ?> ? hasFlag(Flag.PARSE_LITERALS) : hasFlag(Flag.PARSE_NON_LITERALS);
     }
 
-    private record ParseResult<S>(S element, MatchResult matchResult) {}
+    private record ParseResult<S extends SyntaxElement<?>>(S element, MatchResult matchResult) {
+
+        @SuppressWarnings({"rawtypes", "unchecked"})
+        public boolean init(Skript skript) {
+            Expressions expressions = Optional.ofNullable(matchResult)
+                    .flatMap(result -> result.getOptionalData(ExpressionPatternElement.Data.class))
+                    .map(ExpressionPatternElement.Data::expressions)
+                    .map(exprs -> new Expressions(exprs))
+                    .orElse(null);
+            return matchResult == null || element.init(skript, expressions, matchResult);
+        }
+        
+    }
 
 }

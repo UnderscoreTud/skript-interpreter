@@ -57,7 +57,8 @@ public interface SkriptParser extends SkriptProperty {
     enum Flag {
 
         PARSE_LITERALS,
-        PARSE_NONLITERALS,
+        PARSE_NON_LITERALS,
+        PARSE_VARIABLES,
 
     }
     

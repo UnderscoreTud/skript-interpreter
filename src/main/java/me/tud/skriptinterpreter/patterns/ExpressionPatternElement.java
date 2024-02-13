@@ -3,6 +3,8 @@ package me.tud.skriptinterpreter.patterns;
 import me.tud.skriptinterpreter.Skript;
 import me.tud.skriptinterpreter.lang.Expression;
 import me.tud.skriptinterpreter.parser.SkriptParser;
+import me.tud.skriptinterpreter.registration.TypeRegistry;
+import me.tud.skriptinterpreter.types.TypeResult;
 import me.tud.skriptinterpreter.util.StringReader;
 
 import java.util.*;
@@ -21,14 +23,21 @@ public class ExpressionPatternElement extends AbstractPatternElement {
             string = string.substring(1);
             flags.add(flag);
         }
-        return new ExpressionPatternElement(pattern.skript(), string.split("/"), flags);
+        TypeRegistry registry = pattern.skript().typeRegistry();
+        String[] codenames = string.split("/");
+        TypeResult<?>[] types = new TypeResult<?>[codenames.length];
+        for (int i = 0; i < codenames.length; i++) {
+            String codename = codenames[i];
+            types[i] = registry.parseInput(codename).orElseThrow(() ->
+                    new MalformedPatternException("Couldn't find type with codename '" + codename + "'"));
+        }
+        return new ExpressionPatternElement(pattern.skript(), types, flags);
     };
 
-    // TODO make some sort of type class
-    private final String[] types;
+    private final TypeResult<?>[] types;
     private final EnumSet<Flag> flags;
 
-    public ExpressionPatternElement(Skript skript, String[] types, EnumSet<Flag> flags) {
+    public ExpressionPatternElement(Skript skript, TypeResult<?>[] types, EnumSet<Flag> flags) {
         super(skript);
         this.types = types;
         this.flags = flags;
@@ -37,14 +46,29 @@ public class ExpressionPatternElement extends AbstractPatternElement {
     @Override
     protected boolean matches(StringReader reader, MatchResult.Builder builder, boolean exhaust) {
         StringBuilder stringBuilder = new StringBuilder();
+
+        EnumSet<SkriptParser.Flag> parserFlags;
+        if (flags.contains(Flag.NON_LITERAL)) {
+            parserFlags = EnumSet.of(SkriptParser.Flag.PARSE_NON_LITERALS, SkriptParser.Flag.PARSE_VARIABLES);
+        } else if (flags.contains(Flag.LITERAL)) {
+            parserFlags = EnumSet.of(SkriptParser.Flag.PARSE_LITERALS);
+        } else if (flags.contains(Flag.VARIABLE)) {
+            parserFlags = EnumSet.of(SkriptParser.Flag.PARSE_VARIABLES);
+        } else {
+            parserFlags = EnumSet.allOf(SkriptParser.Flag.class);
+        }
+
+        SkriptParser parser = SkriptParser.create(skript(), "", parserFlags);
         while (reader.canRead()) {
             stringBuilder.append(reader.read());
-            SkriptParser parser = SkriptParser.create(skript(), stringBuilder.toString(), EnumSet.allOf(SkriptParser.Flag.class));
-            Expression<?, ?> expression = parser.parse(skript().expressions());
+            parser = parser.withInput(stringBuilder.toString());
+            Expression<?, ?> expression = parser.parse(skript().expressions(), this::check);
             if (expression == null) continue;
+
             StringReader newReader = reader.clone();
             MatchResult.Builder newBuilder = MatchResult.fromBuilder(builder);
             if (!matchNext(newReader, newBuilder, exhaust)) continue;
+            // TODO modify data
             reader.cursor(newReader.cursor());
             builder.combine(newBuilder);
             return true;
@@ -57,12 +81,26 @@ public class ExpressionPatternElement extends AbstractPatternElement {
         return matches(reader, builder, exhaust);
     }
 
+    private boolean check(Expression<?, ?> expression) {
+        for (TypeResult<?> typeResult : types) {
+            if (!typeResult.plural() && !expression.isSingle()) continue;
+            // TODO replace with converters
+            if (!typeResult.type().underlyingClass().isAssignableFrom(expression.returnType())) continue;
+            return true;
+        }
+        return false;
+    }
+
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder();
+        StringBuilder builder = new StringBuilder("%");
         for (Flag flag : flags)
             builder.append(flag.sign);
-        return builder + String.join("/", types);
+        for (int i = 0; i < types.length; i++) {
+            builder.append(types[i].input());
+            if (i > 0) builder.append('/');
+        }
+        return builder + "%";
     }
 
     public enum Flag {
@@ -88,6 +126,25 @@ public class ExpressionPatternElement extends AbstractPatternElement {
 
         public static Optional<Flag> byChar(char sign) {
             return Optional.ofNullable(charToFlag.get(sign));
+        }
+
+    }
+
+    public static class Data implements MatchResult.Data {
+
+        private final List<Expression<?, ?>> expressions = new ArrayList<>();
+
+        public List<Expression<?, ?>> expressions() {
+            return expressions;
+        }
+
+        public Expression<?, ?>[] expressionsArray() {
+            return expressions().toArray(new Expression[0]);
+        }
+
+        @Override
+        public void combine(MatchResult.Data other) {
+            if (other instanceof Data otherData) expressions.addAll(otherData.expressions);
         }
 
     }

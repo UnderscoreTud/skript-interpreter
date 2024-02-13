@@ -1,12 +1,19 @@
 package me.tud.skriptinterpreter.lang;
 
+import java.util.*;
+
 public class Expressions<S> {
 
     private final Expression<S, ?>[] expressions;
 
+    @SuppressWarnings("unchecked")
+    public Expressions(Collection<Expression<S, ?>> expressions) {
+        this(expressions.toArray(new Expression[0]));
+    }
+
     @SafeVarargs
     public Expressions(Expression<S, ?>... expressions) {
-        this.expressions = expressions;
+        this.expressions = Objects.requireNonNull(expressions, "expressions array cannot be null");
     }
 
     public Expression<S, ?> get(int position) {
@@ -19,6 +26,16 @@ public class Expressions<S> {
 
     public Expression<S, ?>[] getAll() {
         return expressions;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder("Expressions[");
+        for (int i = 0; i < expressions.length; i++) {
+            builder.append(expressions[i]);
+            if (i > 0) builder.append(", ");
+        }
+        return builder + "]";
     }
 
 }

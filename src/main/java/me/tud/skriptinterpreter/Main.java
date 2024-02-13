@@ -7,6 +7,7 @@ import me.tud.skriptinterpreter.parser.SkriptParser;
 import me.tud.skriptinterpreter.patterns.MatchResult;
 import me.tud.skriptinterpreter.patterns.ParseTagPatternElement;
 import me.tud.skriptinterpreter.patterns.SkriptPattern;
+import me.tud.skriptinterpreter.types.Type;
 
 import java.util.EnumSet;
 
@@ -16,6 +17,12 @@ public class Main {
         Skript skript = Skript.create();
         skript.init();
 
+        skript.typeRegistry().register(Type.builder(String.class)
+                .codename("string")
+                .name("string", "strings")
+                .name("text", "texts")
+                .build());
+        
         skript.effects().register(EffPrint.class, EffPrint::new, "print %string%");
         skript.expressions().register(ExprString.class, ExprString.PARSER);
 

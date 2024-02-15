@@ -13,7 +13,7 @@ public class LiteralPatternElement extends AbstractPatternElement {
     }
 
     @Override
-    protected boolean matches(StringReader reader, MatchResult.Builder builder, boolean exhaust) {
+    protected boolean matches(StringReader reader, MatchResult.DataContainer dataContainer, boolean exhaust) {
         if (literal.isEmpty()) return true;
         if (reader.cursor() > 0 && literal.charAt(0) == ' ' && reader.peek(-1) == ' ')
             reader.cursor(reader.cursor() - 1);

@@ -44,7 +44,7 @@ public class ExpressionPatternElement extends AbstractPatternElement {
     }
 
     @Override
-    protected boolean matches(StringReader reader, MatchResult.Builder builder, boolean exhaust) {
+    protected boolean matches(StringReader reader, MatchResult.DataContainer dataContainer, boolean exhaust) {
         StringBuilder stringBuilder = new StringBuilder();
 
         EnumSet<SkriptParser.Flag> parserFlags;
@@ -66,19 +66,19 @@ public class ExpressionPatternElement extends AbstractPatternElement {
             if (expression == null) continue;
 
             StringReader newReader = reader.clone();
-            MatchResult.Builder newBuilder = MatchResult.fromBuilder(builder);
-            if (!matchNext(newReader, newBuilder, exhaust)) continue;
+            MatchResult.DataContainer childContainer = dataContainer.child();
+            if (!matchNext(newReader, childContainer, exhaust)) continue;
             // TODO modify data
             reader.cursor(newReader.cursor());
-            builder.combine(newBuilder);
+            dataContainer.combine(childContainer);
             return true;
         }
         return false;
     }
 
     @Override
-    public boolean match(StringReader reader, MatchResult.Builder builder, boolean exhaust) {
-        return matches(reader, builder, exhaust);
+    public boolean match(StringReader reader, MatchResult.DataContainer dataContainer, boolean exhaust) {
+        return matches(reader, dataContainer, exhaust);
     }
 
     private boolean check(Expression<?, ?> expression) {
@@ -97,8 +97,8 @@ public class ExpressionPatternElement extends AbstractPatternElement {
         for (Flag flag : flags)
             builder.append(flag.sign);
         for (int i = 0; i < types.length; i++) {
-            builder.append(types[i].input());
             if (i > 0) builder.append('/');
+            builder.append(types[i].input());
         }
         return builder + "%";
     }

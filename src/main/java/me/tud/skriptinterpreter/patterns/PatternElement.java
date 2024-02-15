@@ -6,7 +6,7 @@ import org.jetbrains.annotations.Nullable;
 
 public interface PatternElement extends SkriptProperty {
 
-    boolean match(StringReader reader, MatchResult.Builder builder, boolean exhaust);
+    boolean match(StringReader reader, MatchResult.DataContainer dataContainer, boolean exhaust);
 
     @Nullable PatternElement next();
 

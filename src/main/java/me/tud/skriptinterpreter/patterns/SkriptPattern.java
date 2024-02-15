@@ -29,12 +29,12 @@ public final class SkriptPattern implements SkriptProperty {
     }
 
     public @Nullable MatchResult match(String input) {
-        return match(new StringReader(input), MatchResult.builder(input));
+        return match(new StringReader(input), new MatchResult.DataContainer());
     }
 
-    public @Nullable MatchResult match(StringReader reader, MatchResult.Builder builder) {
-        if (!head().match(reader, builder, true) || reader.canRead()) return null;
-        return builder.build();
+    public @Nullable MatchResult match(StringReader reader, MatchResult.DataContainer dataContainer) {
+        if (!head().match(reader, dataContainer, true) || reader.canRead()) return null;
+        return new MatchResult(reader.input(), dataContainer);
     }
 
     public SkriptPattern append(PatternElement element) {

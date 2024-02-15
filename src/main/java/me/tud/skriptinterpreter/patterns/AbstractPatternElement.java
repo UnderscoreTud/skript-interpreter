@@ -15,11 +15,11 @@ public abstract class AbstractPatternElement implements PatternElement {
         this.skript = skript;
     }
 
-    protected abstract boolean matches(StringReader reader, MatchResult.Builder builder, boolean exhaust);
+    protected abstract boolean matches(StringReader reader, MatchResult.DataContainer dataContainer, boolean exhaust);
 
     @Override
-    public boolean match(StringReader reader, MatchResult.Builder builder, boolean exhaust) {
-        return matches(reader, builder, exhaust) && matchNext(reader, builder, exhaust);
+    public boolean match(StringReader reader, MatchResult.DataContainer dataContainer, boolean exhaust) {
+        return matches(reader, dataContainer, exhaust) && matchNext(reader, dataContainer, exhaust);
     }
 
     @Override
@@ -38,9 +38,9 @@ public abstract class AbstractPatternElement implements PatternElement {
         return skript;
     }
 
-    protected boolean matchNext(StringReader reader, MatchResult.Builder builder, boolean exhaust) {
+    protected boolean matchNext(StringReader reader, MatchResult.DataContainer dataContainer, boolean exhaust) {
         if (next == null) return !exhaust || !reader.canRead();
-        return next.match(reader, builder, exhaust);
+        return next.match(reader, dataContainer, exhaust);
     }
 
     @Override

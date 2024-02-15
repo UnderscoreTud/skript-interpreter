@@ -25,7 +25,7 @@ public class RegexPatternElement extends AbstractPatternElement {
     }
 
     @Override
-    protected boolean matches(StringReader reader, MatchResult.Builder builder, boolean exhaust) {
+    protected boolean matches(StringReader reader, MatchResult.DataContainer dataContainer, boolean exhaust) {
         Matcher matcher = regexPattern.matcher(reader.input());
         int start = reader.cursor();
         // if this is the last element then just match the rest of the string with the regex pattern
@@ -35,19 +35,19 @@ public class RegexPatternElement extends AbstractPatternElement {
             matcher.region(start, reader.cursor());
             if (!matcher.matches()) continue;
             StringReader newReader = reader.clone();
-            MatchResult.Builder newBuilder = MatchResult.fromBuilder(builder);
-            if (!matchNext(newReader, newBuilder, exhaust)) continue;
-            builder.getOrCreateData(Data.class, Data::new).results().add(matcher.toMatchResult());
+            MatchResult.DataContainer childContainer = dataContainer.child();
+            if (!matchNext(newReader, childContainer, exhaust)) continue;
+            dataContainer.getOrCreate(Data.class, Data::new).results().add(matcher.toMatchResult());
             reader.cursor(newReader.cursor());
-            builder.combine(newBuilder);
+            dataContainer.combine(childContainer);
             return true;
         }
         return false;
     }
 
     @Override
-    public boolean match(StringReader reader, MatchResult.Builder builder, boolean exhaust) {
-        return matches(reader, builder, exhaust);
+    public boolean match(StringReader reader, MatchResult.DataContainer dataContainer, boolean exhaust) {
+        return matches(reader, dataContainer, exhaust);
     }
 
     public Pattern regexPattern() {

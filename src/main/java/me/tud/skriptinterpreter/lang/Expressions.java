@@ -32,8 +32,8 @@ public class Expressions<S> {
     public String toString() {
         StringBuilder builder = new StringBuilder("Expressions[");
         for (int i = 0; i < expressions.length; i++) {
-            builder.append(expressions[i]);
             if (i > 0) builder.append(", ");
+            builder.append(expressions[i]);
         }
         return builder + "]";
     }

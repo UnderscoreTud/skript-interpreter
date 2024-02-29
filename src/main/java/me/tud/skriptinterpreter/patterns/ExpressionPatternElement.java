@@ -6,12 +6,13 @@ import me.tud.skriptinterpreter.parser.SkriptParser;
 import me.tud.skriptinterpreter.registration.TypeRegistry;
 import me.tud.skriptinterpreter.types.TypeResult;
 import me.tud.skriptinterpreter.util.StringReader;
+import me.tud.skriptinterpreter.util.ValueHolder;
 
 import java.util.*;
 
 public class ExpressionPatternElement extends AbstractPatternElement {
 
-    public static final Compiler<ExpressionPatternElement> COMPILER = (pattern, reader, lookbehind) -> {
+    public static final Compiler<ExpressionPatternElement> COMPILER = (reader, context) -> {
         if (reader.read() != '%') return null;
         String string = reader.readUntil(c -> c == '%');
         reader.skip(); // Skip the last %
@@ -23,7 +24,7 @@ public class ExpressionPatternElement extends AbstractPatternElement {
             string = string.substring(1);
             flags.add(flag);
         }
-        TypeRegistry registry = pattern.skript().typeRegistry();
+        TypeRegistry registry = context.skript().typeRegistry();
         String[] codenames = string.split("/");
         TypeResult<?>[] types = new TypeResult<?>[codenames.length];
         for (int i = 0; i < codenames.length; i++) {
@@ -31,20 +32,28 @@ public class ExpressionPatternElement extends AbstractPatternElement {
             types[i] = registry.parseInput(codename).orElseThrow(() ->
                     new MalformedPatternException("Couldn't find type with codename '" + codename + "'"));
         }
-        return new ExpressionPatternElement(pattern.skript(), types, flags);
+        ValueHolder<Integer> indexHolder = context.getData(ExpressionPatternElement.class);
+        int index = indexHolder.getOptional().orElse(0);
+        indexHolder.set(index + 1);
+        return new ExpressionPatternElement(context.skript(), types, flags, index, indexHolder);
     };
 
     private final TypeResult<?>[] types;
     private final EnumSet<Flag> flags;
+    private final int index;
+    private final ValueHolder<Integer> expressionAmount;
 
-    public ExpressionPatternElement(Skript skript, TypeResult<?>[] types, EnumSet<Flag> flags) {
+    public ExpressionPatternElement(Skript skript, TypeResult<?>[] types, EnumSet<Flag> flags, int index, ValueHolder<Integer> expressionAmount) {
         super(skript);
         this.types = types;
         this.flags = flags;
+        this.index = index;
+        this.expressionAmount = expressionAmount;
     }
 
     @Override
     protected boolean matches(StringReader reader, MatchResult.DataContainer dataContainer, boolean exhaust) {
+        int expressionAmount = this.expressionAmount.get();
         StringBuilder stringBuilder = new StringBuilder();
 
         EnumSet<SkriptParser.Flag> parserFlags;
@@ -68,7 +77,7 @@ public class ExpressionPatternElement extends AbstractPatternElement {
             StringReader newReader = reader.clone();
             MatchResult.DataContainer childContainer = dataContainer.child();
             if (!matchNext(newReader, childContainer, exhaust)) continue;
-            // TODO modify data
+            dataContainer.getOrCreate(Data.class, () -> new Data(expressionAmount)).expressions[index] = expression;
             reader.cursor(newReader.cursor());
             dataContainer.combine(childContainer);
             return true;
@@ -132,19 +141,23 @@ public class ExpressionPatternElement extends AbstractPatternElement {
 
     public static class Data implements MatchResult.Data {
 
-        private final List<Expression<?, ?>> expressions = new ArrayList<>();
+        private final Expression<?, ?>[] expressions;
 
-        public List<Expression<?, ?>> expressions() {
-            return expressions;
+        public Data(int expressionAmount) {
+            this.expressions = new Expression[expressionAmount];
         }
 
-        public Expression<?, ?>[] expressionsArray() {
-            return expressions().toArray(new Expression[0]);
+        public Expression<?, ?>[] expressions() {
+            return expressions;
         }
 
         @Override
         public void combine(MatchResult.Data other) {
-            if (other instanceof Data otherData) expressions.addAll(otherData.expressions);
+            if (!(other instanceof Data otherData)) return;
+            for (int i = 0; i < otherData.expressions().length; i++) {
+                Expression<?, ?> expression = otherData.expressions()[i];
+                if (expression != null) expressions[i] = expression;
+            }
         }
 
     }

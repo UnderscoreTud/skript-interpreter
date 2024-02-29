@@ -13,14 +13,13 @@ public class EffPrint<S> extends AbstractEffect<S> {
 
     @Override
     public boolean init(Skript skript, Expressions<S> expressions, MatchResult matchResult) {
-//        string = expressions.get(0, String.class);
+        string = expressions.get(0, String.class);
         return true;
     }
 
     @Override
     public void execute(Context<S> context) {
-//        System.out.println(string.get(context).getSingle());
-        System.out.println("printed something");
+        System.out.println(string.get(context).getSingle());
     }
 
 }

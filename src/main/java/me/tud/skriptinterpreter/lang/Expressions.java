@@ -21,7 +21,9 @@ public class Expressions<S> {
     }
 
     public <T> Expression<S, T> get(int position, Class<T> type) {
-        return expressions[position].asSubtype(type);
+        Expression<S, ?> expression = get(position);
+        if (expression == null) return null;
+        return expression.asSubtype(type);
     }
 
     public Expression<S, ?>[] getAll() {

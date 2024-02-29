@@ -10,11 +10,11 @@ import java.util.regex.Pattern;
 
 public class RegexPatternElement extends AbstractPatternElement {
 
-    public static final Compiler<RegexPatternElement> COMPILER = (pattern, reader, lookbehind) -> {
+    public static final Compiler<RegexPatternElement> COMPILER = (reader, context) -> {
         if (reader.peek() != '<') return null;
         String regexPattern = reader.readEnclosed('<', '>');
         if (regexPattern == null) return null; // TODO maybe throw exception?
-        return new RegexPatternElement(pattern.skript(), Pattern.compile(regexPattern));
+        return new RegexPatternElement(context.skript(), Pattern.compile(regexPattern));
     };
 
     private final Pattern regexPattern;

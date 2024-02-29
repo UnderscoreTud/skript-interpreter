@@ -9,10 +9,10 @@ import java.util.ListIterator;
 
 public class ParseTagPatternElement extends AbstractPatternElement {
 
-    public static final Compiler<ParseTagPatternElement> COMPILER = (pattern, reader, lookbehind) -> {
+    public static final Compiler<ParseTagPatternElement> COMPILER = (reader, context) -> {
         if (reader.read() != ':') return null;
-        String tag = lookbehind.consume();
-        return new ParseTagPatternElement(pattern.skript(), tag);
+        String tag = context.lookbehind().consume();
+        return new ParseTagPatternElement(context.skript(), tag);
     };
 
     private String tag;

@@ -8,17 +8,16 @@ import java.util.List;
 
 public class ChoicePatternElement extends AbstractPatternElement {
 
-    public static final Compiler<ChoicePatternElement> COMPILER = (pattern, reader, lookbehind) -> {
+    public static final Compiler<ChoicePatternElement> COMPILER = (reader, context) -> {
         if (reader.read() != '|') return null;
-        Skript skript = pattern.skript();
-        PatternCompiler compiler = skript.patterCompiler();
+        Skript skript = context.skript();
 
-        SkriptPattern left = new SkriptPattern(skript, pattern.head());
-        left.append(new LiteralPatternElement(skript, lookbehind.consume()));
+        SkriptPattern left = new SkriptPattern(skript, context.pattern().head());
+        left.append(new LiteralPatternElement(skript, context.lookbehind().consume()));
 
-        SkriptPattern right = compiler.compile(reader.finish());
+        SkriptPattern right = context.compilePattern(reader.finish());
 
-        pattern.clear();
+        context.pattern().clear();
         return new ChoicePatternElement(skript, getAllChoices(left, right));
     };
 

@@ -2,11 +2,10 @@ package me.tud.skriptinterpreter.patterns;
 
 import me.tud.skriptinterpreter.Skript;
 import me.tud.skriptinterpreter.SkriptProperty;
+import me.tud.skriptinterpreter.util.ValueHolder;
 import me.tud.skriptinterpreter.util.StringReader;
-import org.jetbrains.annotations.Nullable;
 
-import java.util.LinkedHashSet;
-import java.util.Set;
+import java.util.*;
 
 public class PatternCompiler implements SkriptProperty {
 
@@ -23,7 +22,11 @@ public class PatternCompiler implements SkriptProperty {
     }
 
     public SkriptPattern compile(String pattern) {
-        SkriptPattern compiledPattern = new SkriptPattern(skript);
+        return compile(pattern, new Context());
+    }
+
+    public SkriptPattern compile(String pattern, Context context) {
+        SkriptPattern compiledPattern = context.pattern = new SkriptPattern(skript);
         if (pattern.isEmpty()) return compiledPattern.append(new LiteralPatternElement(skript, ""));
         StringReader reader = new StringReader(pattern);
         StringBuilder lookbehindBuilder = new StringBuilder();
@@ -39,12 +42,12 @@ public class PatternCompiler implements SkriptProperty {
                 reader.skip();
                 continue;
             }
-            Lookbehind lookbehind = new Lookbehind(lookbehindBuilder.toString());
+            Lookbehind lookbehind = context.lookbehind = new Lookbehind(lookbehindBuilder.toString());
 
             for (AbstractPatternElement.Compiler<?> compiler : compilers) {
                 StringReader clone = reader.clone();
                 lookbehind.consume = false;
-                PatternElement element = compiler.compile(compiledPattern, clone, lookbehind);
+                PatternElement element = compiler.compile(clone, context);
                 if (element == null) continue;
 
                 if (!lookbehind.consume && !lookbehind.get().isEmpty())
@@ -66,6 +69,58 @@ public class PatternCompiler implements SkriptProperty {
     @Override
     public Skript skript() {
         return skript;
+    }
+
+    public class Context implements SkriptProperty { 
+
+        private final Map<Object, Object> data;
+        private SkriptPattern pattern;
+        private Lookbehind lookbehind;
+
+        public Context() {
+            this(new HashMap<>());
+        }
+
+        public Context(Map<Object, Object> data) {
+            this.data = data;
+        }
+
+        public <K, V> ValueHolder<V> getData(K key) {
+            return new ValueHolder<>() {
+                @Override
+                @SuppressWarnings("unchecked")
+                public V get() {
+                    return (V) data.get(key);
+                }
+
+                @Override
+                public void set(V value) {
+                    data.put(key, value);
+                }
+            };
+        }
+
+        public Context newScope() {
+            return new Context(data);
+        }
+
+        public SkriptPattern compilePattern(String pattern) {
+            return compile(pattern, newScope());
+        }
+
+        public SkriptPattern pattern() {
+            return pattern;
+        }
+
+        public Lookbehind lookbehind() {
+            return lookbehind;
+        }
+
+        @Override
+        public Skript skript() {
+            return skript;
+        }
+
     }
 
     public static class Lookbehind {

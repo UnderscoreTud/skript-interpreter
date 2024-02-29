@@ -16,7 +16,7 @@ public interface PatternElement extends SkriptProperty {
 
     @FunctionalInterface
     interface Compiler<P extends PatternElement> {
-        @Nullable P compile(SkriptPattern pattern, StringReader reader, PatternCompiler.Lookbehind lookbehind);
+        @Nullable P compile(StringReader reader, PatternCompiler.Context context);
     }
 
 }

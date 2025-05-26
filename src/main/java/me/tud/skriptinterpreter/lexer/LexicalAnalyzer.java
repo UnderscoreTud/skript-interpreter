@@ -45,7 +45,8 @@ public class LexicalAnalyzer {
             return new Token(TokenType.WHITESPACE, whitespace, line, column);
         } else if (current == '#') {
             String comment = reader.readUntil(c -> c == '\n');
-            return new Token(TokenType.COMMENT, comment, line, column);
+//            return new Token(TokenType.COMMENT, comment, line, column);
+            return nextToken();
         } else if (current == '"') {
             String string = reader.readEnclosed('"', '"', '\\');
             if (string != null)

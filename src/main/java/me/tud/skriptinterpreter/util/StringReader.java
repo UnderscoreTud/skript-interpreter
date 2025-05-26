@@ -29,10 +29,21 @@ public class StringReader implements Cloneable {
         return cursor;
     }
 
+    public int line() {
+        return string.substring(0, cursor).split("\n", -1).length;
+    }
+
+    public int column() {
+        String[] lines = string.substring(0, cursor).split("\n", -1);
+        return lines[lines.length - 1].length() + 1; // +1 for 1-based index
+    }
+
+    @Contract(mutates = "this")
     public void cursor(int cursor) {
         this.cursor = cursor;
     }
 
+    @Contract(mutates = "this")
     public String readUntil(Predicate<Character> predicate) {
         int start = cursor;
         while (canRead() && !predicate.test(peek()))
@@ -69,6 +80,7 @@ public class StringReader implements Cloneable {
         return null;
     }
 
+    @Contract(mutates = "this")
     public char read() {
         return string.charAt(cursor++);
     }
@@ -81,6 +93,7 @@ public class StringReader implements Cloneable {
         return string.charAt(cursor + offset);
     }
 
+    @Contract(mutates = "this")
     public void skip() {
         cursor++;
     }
@@ -89,6 +102,11 @@ public class StringReader implements Cloneable {
         return cursor < length;
     }
 
+    public boolean canRead(int chars) {
+        return cursor + chars - 1 < length;
+    }
+
+    @Contract(mutates = "this")
     public String finish() {
         int cursor = this.cursor;
         this.cursor = length;

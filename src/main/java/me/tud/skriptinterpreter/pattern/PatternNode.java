@@ -2,7 +2,6 @@ package me.tud.skriptinterpreter.pattern;
 
 import me.tud.skriptinterpreter.lexer.LexicalAnalyzer;
 import me.tud.skriptinterpreter.lexer.TokenIterator;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -11,9 +10,7 @@ public abstract class PatternNode {
 
     private final Map<Key, PatternNode> children = new HashMap<>();
     boolean terminal = false;
-    @Nullable String pattern;
-    int expressionCount;
-    int regexCount;
+    PatternInfo patternInfo;
 
     public abstract String value();
 

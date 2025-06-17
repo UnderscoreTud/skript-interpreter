@@ -3,6 +3,7 @@ package me.tud.skriptinterpreter.pattern;
 import me.tud.skriptinterpreter.lexer.LexicalAnalyzer;
 import me.tud.skriptinterpreter.lexer.TokenIterator;
 import me.tud.skriptinterpreter.pattern.peg.PegPatternParser;
+import me.tud.skriptinterpreter.pattern.peg.node.PegNode;
 import me.tud.skriptinterpreter.util.StringReader;
 import org.jetbrains.annotations.Nullable;
 
@@ -20,8 +21,10 @@ public class PatternTrie {
 
     public void insert(String pattern, @Nullable PatternTrie expressionTrie) {
         PegPatternParser parser = new PegPatternParser(pattern);
-        for (String expandedPattern : parser.parse().expand())
-            insertPattern(root, pattern, new StringReader(expandedPattern.trim()), parser.expressionCount(), parser.regexCount(), expressionTrie);
+        PegNode parsed = parser.parse();
+        PatternInfo patternInfo = new PatternInfo(pattern, parser.expressionCount(), parser.regexCount());
+        for (String expandedPattern : parsed.expand())
+            insertPattern(root, new StringReader(expandedPattern.trim()), patternInfo, expressionTrie);
     }
 
     public MatchResult match(String input) {
@@ -32,19 +35,17 @@ public class PatternTrie {
         return match(root, tokens, new MatchResult.Metadata());
     }
 
-    private void insertPattern(PatternNode node, String pattern, StringReader reader, int expressionCount, int regexCount, @Nullable PatternTrie expressionTrie) {
+    private void insertPattern(PatternNode node, StringReader reader, PatternInfo patternInfo, @Nullable PatternTrie expressionTrie) {
         if (!reader.canRead()) {
-            if (node.terminal && !pattern.equals(node.pattern))
-                throw new IllegalStateException("Pattern '" + pattern + "' conflicts with existing pattern '" + node.pattern + "'");
+            if (node.terminal && !patternInfo.equals(node.patternInfo))
+                throw new IllegalStateException("Pattern '" + patternInfo.pattern() + "' conflicts with existing pattern '" + node.patternInfo.pattern() + "'");
             node.terminal = true;
-            node.pattern = pattern;
-            node.expressionCount = expressionCount;
-            node.regexCount = regexCount;
+            node.patternInfo = patternInfo;
             return;
         }
 
         PatternNode next = parseNextNode(reader, expressionTrie);
-        insertPattern(node.children().computeIfAbsent(next.key(), k -> next), pattern, reader, expressionCount, regexCount, expressionTrie);
+        insertPattern(node.children().computeIfAbsent(next.key(), k -> next), reader, patternInfo, expressionTrie);
     }
 
     private MatchResult match(PatternNode node, TokenIterator tokens, MatchResult.Metadata metadata) {
@@ -69,9 +70,9 @@ public class PatternTrie {
             return MatchResult.fail(tokens.input());
 
         if (node.terminal) {
-            metadata.allocateExpressions(node.expressionCount);
-            metadata.allocateRegexes(node.regexCount);
-            return MatchResult.success(node.pattern, tokens.input(), metadata);
+            metadata.allocateExpressions(node.patternInfo.expressionCount());
+            metadata.allocateRegexes(node.patternInfo.regexCount());
+            return MatchResult.success(node.patternInfo.pattern(), tokens.input(), metadata);
         }
 
         return matchChildren(node, tokens, metadata);

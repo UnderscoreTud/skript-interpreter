@@ -2,27 +2,30 @@ package me.tud.skriptinterpreter.lang;
 
 import java.util.Collection;
 
-public class Expressions {
+public class Expressions<S> {
 
-    private final Object[] expressions;
+    private final Expression<S, ?>[] expressions;
 
-    public Expressions(Collection<Object> expressions) {
-        this(expressions.toArray(new Object[0]));
+    public Expressions(Collection<Expression<S, ?>> expressions) {
+        //noinspection unchecked
+        this(expressions.toArray(new Expression[0]));
     }
 
-    public Expressions(Object... expressions) {
+    @SafeVarargs
+    public Expressions(Expression<S, ?>... expressions) {
         this.expressions = expressions;
     }
 
-    public Object get(int position) {
+    public Expression<S, ?> get(int position) {
         return expressions[position];
     }
 
-    public <T> Object get(int position, Class<T> type) {
-        return get(position); // TODO
+    public <T> Expression<S, T> get(int position, Class<T> type) {
+        //noinspection unchecked
+        return (Expression<S, T>) expressions[position];
     }
 
-    public Object[] getAll() {
+    public Expression<S, ?>[] getAll() {
         return expressions;
     }
 

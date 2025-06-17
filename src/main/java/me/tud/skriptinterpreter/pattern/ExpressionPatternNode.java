@@ -1,6 +1,10 @@
 package me.tud.skriptinterpreter.pattern;
 
+import me.tud.skriptinterpreter.lang.Expression;
+import me.tud.skriptinterpreter.lang.Expressions;
 import me.tud.skriptinterpreter.lexer.TokenIterator;
+import me.tud.skriptinterpreter.parser.ParseContext;
+import me.tud.skriptinterpreter.parser.exceptions.ParseException;
 import org.jetbrains.annotations.NotNull;
 
 public class ExpressionPatternNode extends PatternNode {
@@ -45,7 +49,22 @@ public class ExpressionPatternNode extends PatternNode {
         MatchResult result = trie.match(tokens);
         if (!result.success())
             return false;
-        metadata.expressions().getAll()[index()] = result.pattern(); // TODO store the actual expression once implemented
+        metadata.expressions().getAll()[index()] = new Expression<>() {
+            @Override
+            public boolean init(Expressions<Object> expressions, ParseContext context) throws ParseException {
+                return true;
+            }
+
+            @Override
+            public Object evaluate(Object context) {
+                return result.pattern();
+            }
+
+            @Override
+            public String toString() {
+                return "EXPRESSION:" + evaluate(null).toString();
+            }
+        };
         return true;
     }
 

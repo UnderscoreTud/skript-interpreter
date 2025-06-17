@@ -1,5 +1,6 @@
 package me.tud.skriptinterpreter.pattern;
 
+import me.tud.skriptinterpreter.lang.Expression;
 import me.tud.skriptinterpreter.lang.Expressions;
 
 import java.util.Arrays;
@@ -16,28 +17,30 @@ public record MatchResult(boolean success, String pattern, String input, Metadat
 
     public static final class Metadata {
 
-        private Expressions expressions;
+        private Expressions<?> expressions;
         private java.util.regex.MatchResult[] regexes;
 
         public Metadata() {
             this(null, null);
         }
 
-        public Metadata(Expressions expressions, java.util.regex.MatchResult[] regexes) {
+        public Metadata(Expressions<?> expressions, java.util.regex.MatchResult[] regexes) {
             this.expressions = expressions;
             this.regexes = regexes;
         }
 
         void allocateExpressions(int expressionCount) {
-            expressions = new Expressions(new Object[expressionCount]);
+            //noinspection unchecked,rawtypes
+            expressions = new Expressions<>(new Expression[expressionCount]);
         }
 
         void allocateRegexes(int regexCount) {
             regexes = new java.util.regex.MatchResult[regexCount];
         }
 
-        public Expressions expressions() {
-            return expressions;
+        public <T> Expressions<T> expressions() {
+            //noinspection unchecked
+            return (Expressions<T>) expressions;
         }
 
         public java.util.regex.MatchResult[] regexes() {

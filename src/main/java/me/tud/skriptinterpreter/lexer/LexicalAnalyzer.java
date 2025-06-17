@@ -29,6 +29,10 @@ public class LexicalAnalyzer {
         return tokens;
     }
 
+    public TokenIterator iterator() {
+        return new TokenIterator(reader.input(), tokenize().toArray(new Token[0]));
+    }
+
     public Token nextToken() {
         if (!reader.canRead())
             return null;

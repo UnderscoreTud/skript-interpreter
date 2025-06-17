@@ -13,7 +13,7 @@ public class StringReader implements Cloneable {
     private int cursor;
 
     public StringReader(String string) {
-        this.string = string;
+        this.string = Objects.requireNonNull(string, "string");
         this.length = string.length();
     }
 
@@ -41,6 +41,14 @@ public class StringReader implements Cloneable {
     @Contract(mutates = "this")
     public void cursor(int cursor) {
         this.cursor = cursor;
+    }
+
+    @Contract(mutates = "this")
+    public String readUntil(char c) {
+        int start = cursor;
+        while (canRead() && peek() != c)
+            skip();
+        return string.substring(start, cursor);
     }
 
     @Contract(mutates = "this")
@@ -98,12 +106,23 @@ public class StringReader implements Cloneable {
         cursor++;
     }
 
+    public void expect(char expected) {
+        if (!canRead() || peek() != expected)
+            throw new IllegalArgumentException("Expected '" + expected + "' but found '" + peek() + "' at position " + cursor);
+        skip();
+    }
+
     public boolean canRead() {
         return cursor < length;
     }
 
     public boolean canRead(int chars) {
         return cursor + chars - 1 < length;
+    }
+
+    public String remaining() {
+        if (cursor >= length) return "";
+        return string.substring(cursor);
     }
 
     @Contract(mutates = "this")

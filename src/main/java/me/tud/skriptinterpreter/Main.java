@@ -1,19 +1,28 @@
 package me.tud.skriptinterpreter;
 
-import me.tud.skriptinterpreter.pattern.PatternTrie;
+import me.tud.skriptinterpreter.elements.effects.EffPrint;
+import me.tud.skriptinterpreter.elements.effects.EffWait;
+import me.tud.skriptinterpreter.runtime.RuntimeContext;
+import me.tud.skriptinterpreter.runtime.coroutine.Coroutine;
+import me.tud.skriptinterpreter.runtime.coroutine.CoroutineListener;
+import me.tud.skriptinterpreter.runtime.coroutine.CoroutineManager;
+
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 public class Main {
 
     public static void main(String[] args) {
         Skript skript = Skript.create();
-        PatternTrie trie = skript.patternTrie();
-        trie.insert("[an] expression");
-        trie.insert("hello [%expression%] [%expression%] world", trie);
-        trie.print();
-        System.out.println();
-        System.out.println(trie.match("hello world"));
-        System.out.println(trie.match("hello expression world"));
-        System.out.println(trie.match("hello expression an expression world"));
+        RuntimeContext<Void> runtimeContext = new RuntimeContext<>(skript, null, skript.globalEnvironment());
+        CoroutineManager<Void> manager = new CoroutineManager<>();
+        manager.start();
+        Coroutine<Void> coroutine = manager.createCoroutine(runtimeContext, List.of(
+                new EffPrint("start"),
+                new EffWait(1, TimeUnit.SECONDS),
+                new EffPrint("end")
+        ));
+        manager.startCoroutine(coroutine);
     }
 
 }

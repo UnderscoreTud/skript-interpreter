@@ -3,8 +3,6 @@ package me.tud.skriptinterpreter;
 import me.tud.skriptinterpreter.elements.effects.EffPrint;
 import me.tud.skriptinterpreter.elements.effects.EffWait;
 import me.tud.skriptinterpreter.runtime.RuntimeContext;
-import me.tud.skriptinterpreter.runtime.coroutine.Coroutine;
-import me.tud.skriptinterpreter.runtime.coroutine.CoroutineListener;
 import me.tud.skriptinterpreter.runtime.coroutine.CoroutineManager;
 
 import java.util.List;
@@ -17,12 +15,12 @@ public class Main {
         RuntimeContext<Void> runtimeContext = new RuntimeContext<>(skript, null, skript.globalEnvironment());
         CoroutineManager<Void> manager = new CoroutineManager<>();
         manager.start();
-        Coroutine<Void> coroutine = manager.createCoroutine(runtimeContext, List.of(
+        manager.startCoroutine(runtimeContext, List.of(
                 new EffPrint("start"),
                 new EffWait(1, TimeUnit.SECONDS),
                 new EffPrint("end")
-        ));
-        manager.startCoroutine(coroutine);
+        )).join();
+        manager.shutdown();
     }
 
 }

@@ -33,9 +33,7 @@ public class EffWait implements Statement<Void> {
         }
 
         manager.suspendCoroutine(coroutine);
-        manager.scheduler().schedule(() -> {
-            manager.resumeCoroutine(coroutine);
-        }, delay, unit);
+        manager.scheduler().schedule(() -> manager.resumeCoroutine(coroutine), delay, unit);
     }
 
 }

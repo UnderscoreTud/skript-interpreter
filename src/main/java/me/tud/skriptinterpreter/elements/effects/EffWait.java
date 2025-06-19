@@ -11,7 +11,7 @@ import me.tud.skriptinterpreter.runtime.exceptions.ExecutionException;
 
 import java.util.concurrent.TimeUnit;
 
-public class EffWait implements Statement<Void> {
+public class EffWait implements Statement<Object> {
 
     private final long delay;
     private final TimeUnit unit;
@@ -22,12 +22,12 @@ public class EffWait implements Statement<Void> {
     }
 
     @Override
-    public boolean init(Expressions<Void> expressions, ParseContext context) throws ParseException {
+    public boolean init(Expressions<Object> expressions, ParseContext context) throws ParseException {
         return true;
     }
 
     @Override
-    public void execute(RuntimeContext<Void> context, CoroutineManager<Void> manager, Coroutine<Void> coroutine) throws ExecutionException {
+    public void execute(RuntimeContext<Object> context, CoroutineManager<Object> manager, Coroutine<Object> coroutine) throws ExecutionException {
         if (delay < 0) {
             throw new ExecutionException("Delay cannot be negative: " + delay);
         }

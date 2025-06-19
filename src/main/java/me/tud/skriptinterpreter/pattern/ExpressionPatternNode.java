@@ -5,6 +5,7 @@ import me.tud.skriptinterpreter.lang.Expressions;
 import me.tud.skriptinterpreter.lexer.TokenIterator;
 import me.tud.skriptinterpreter.parser.ParseContext;
 import me.tud.skriptinterpreter.parser.exceptions.ParseException;
+import me.tud.skriptinterpreter.runtime.RuntimeContext;
 import org.jetbrains.annotations.NotNull;
 
 public class ExpressionPatternNode extends PatternNode {
@@ -56,7 +57,7 @@ public class ExpressionPatternNode extends PatternNode {
             }
 
             @Override
-            public Object evaluate(Object context) {
+            public Object evaluate(RuntimeContext<Object> context) {
                 return result.pattern();
             }
 

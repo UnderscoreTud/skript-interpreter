@@ -2,11 +2,8 @@ package me.tud.skriptinterpreter.runtime.coroutine;
 
 import me.tud.skriptinterpreter.runtime.RuntimeContext;
 
-import java.util.HashSet;
 import java.util.Objects;
-import java.util.Set;
 import java.util.Stack;
-import java.util.concurrent.CompletableFuture;
 
 public final class CoroutineContext<S> {
 

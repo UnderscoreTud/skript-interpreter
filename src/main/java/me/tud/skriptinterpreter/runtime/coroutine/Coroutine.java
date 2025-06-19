@@ -79,14 +79,12 @@ public class Coroutine<S> {
     }
 
     public void error(Throwable throwable) {
-        state(State.ERROR);
         this.throwable = throwable;
-        notifyListeners((listener, coroutine) -> listener.onError(coroutine, throwable));
+        state(State.ERROR);
     }
 
     public void complete() {
         state(State.COMPLETED);
-        notifyListeners(CoroutineListener::onComplete);
     }
 
     public void step(CoroutineManager<S> manager) {

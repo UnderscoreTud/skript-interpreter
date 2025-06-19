@@ -59,7 +59,6 @@ public class CoroutineManager<S> {
     }
 
     public Coroutine<S> createCoroutine(RuntimeContext<S> runtimeContext, List<Statement<S>> statements) {
-        checkRunning();
         return createCoroutine(UUID.randomUUID().toString(), runtimeContext, statements);
     }
 
@@ -77,9 +76,13 @@ public class CoroutineManager<S> {
     }
 
     public CompletableFuture<Void> startCoroutine(String id, RuntimeContext<S> runtimeContext, List<Statement<S>> statements) {
+        Coroutine<S> coroutine = createCoroutine(id, runtimeContext, statements);
+        return startCoroutine(coroutine);
+    }
+
+    public CompletableFuture<Void> startCoroutine(Coroutine<S> coroutine) {
         checkRunning();
         CompletableFuture<Void> future = new CompletableFuture<>();
-        Coroutine<S> coroutine = createCoroutine(id, runtimeContext, statements);
         coroutine.addListener(new CoroutineListener<>() {
             @Override
             public void onComplete(Coroutine<S> coroutine) {
@@ -91,16 +94,11 @@ public class CoroutineManager<S> {
                 future.completeExceptionally(error);
             }
         });
-        startCoroutine(coroutine);
-        return future;
-    }
-
-    public void startCoroutine(Coroutine<S> coroutine) {
-        checkRunning();
         coroutine.state(Coroutine.State.READY);
         activeCoroutines.put(coroutine.id(), coroutine);
         notifyListeners(listener -> listener.onStart(coroutine));
         readyQueue.add(coroutine);
+        return future;
     }
 
     public void resumeCoroutine(Coroutine<S> coroutine) {

@@ -14,9 +14,9 @@ public class Main {
 
     public static void main(String[] args) {
         Skript skript = Skript.create();
+        skript.init();
+        CoroutineManager manager = skript.coroutineManager();
         RuntimeContext<Object> runtimeContext = new RuntimeContext<>(skript, new Object(), skript.globalEnvironment());
-        CoroutineManager<Object> manager = new CoroutineManager<>();
-        manager.start();
         CompletableFuture<Void> task1 = manager.startCoroutine(runtimeContext, List.of(
                 new EffPrint(new ExprString("task 1 start")),
                 new EffWait(1, TimeUnit.SECONDS),
@@ -30,7 +30,7 @@ public class Main {
                 new EffPrint(new ExprString("task 2 end"))
         ));
         CompletableFuture.allOf(task1, task2).join();
-        manager.shutdown();
+        skript.cleanup();
     }
 
 }

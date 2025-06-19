@@ -87,7 +87,7 @@ public class Coroutine<S> {
         state(State.COMPLETED);
     }
 
-    public void step(CoroutineManager<S> manager) {
+    public void step(CoroutineManager manager) {
         if (state != State.READY)
             return;
 

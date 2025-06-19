@@ -7,6 +7,6 @@ import me.tud.skriptinterpreter.runtime.exceptions.ExecutionException;
 
 public interface Statement<S> extends SyntaxElement<S> {
 
-    void execute(RuntimeContext<S> context, CoroutineManager<S> manager, Coroutine<S> coroutine) throws ExecutionException;
+    void execute(RuntimeContext<S> context, CoroutineManager manager, Coroutine<S> coroutine) throws ExecutionException;
 
 }

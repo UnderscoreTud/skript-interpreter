@@ -2,6 +2,7 @@ package me.tud.skriptinterpreter;
 
 import me.tud.skriptinterpreter.pattern.PatternTrie;
 import me.tud.skriptinterpreter.runtime.Environment;
+import me.tud.skriptinterpreter.runtime.coroutine.CoroutineManager;
 import org.jetbrains.annotations.Contract;
 
 public interface Skript {
@@ -23,6 +24,13 @@ public interface Skript {
      * @return the global environment
      */
     Environment globalEnvironment();
+
+    /**
+     * Returns the coroutine manager responsible for handling coroutines.
+     *
+     * @return the coroutine manager
+     */
+    CoroutineManager coroutineManager();
 
     @Contract(value = " -> new")
     static Skript create() {

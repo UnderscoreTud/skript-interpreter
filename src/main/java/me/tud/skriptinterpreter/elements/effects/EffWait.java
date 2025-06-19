@@ -27,7 +27,7 @@ public class EffWait implements Statement<Object> {
     }
 
     @Override
-    public void execute(RuntimeContext<Object> context, CoroutineManager<Object> manager, Coroutine<Object> coroutine) throws ExecutionException {
+    public void execute(RuntimeContext<Object> context, CoroutineManager manager, Coroutine<Object> coroutine) throws ExecutionException {
         if (delay < 0) {
             throw new ExecutionException("Delay cannot be negative: " + delay);
         }

@@ -24,7 +24,7 @@ public class EffPrint implements Statement<Object> {
     }
 
     @Override
-    public void execute(RuntimeContext<Object> context, CoroutineManager<Object> manager, Coroutine<Object> coroutine) throws ExecutionException {
+    public void execute(RuntimeContext<Object> context, CoroutineManager manager, Coroutine<Object> coroutine) throws ExecutionException {
         System.out.println(message.evaluate(context));
     }
 

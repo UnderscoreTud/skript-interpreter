@@ -7,15 +7,15 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
-public class CoroutineManager<S> {
+public class CoroutineManager {
 
-    private final Map<String, Coroutine<S>> activeCoroutines = new ConcurrentHashMap<>();
-    private final BlockingQueue<Coroutine<S>> readyQueue = new LinkedBlockingQueue<>();
+    private final Map<String, Coroutine<?>> activeCoroutines = new ConcurrentHashMap<>();
+    private final BlockingQueue<Coroutine<?>> readyQueue = new LinkedBlockingQueue<>();
     private final ExecutorService processingExecutor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(Runtime.getRuntime().availableProcessors());
-    private final Set<CoroutineListener<S>> globalListeners = new HashSet<>();
+    private final Set<CoroutineListener<?>> globalListeners = new HashSet<>();
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final AtomicInteger processingThreads = new AtomicInteger(0);
     private volatile Future<?> processingTask;
@@ -30,7 +30,7 @@ public class CoroutineManager<S> {
         processingTask = processingExecutor.submit(() -> {
             while (running.get() && !Thread.currentThread().isInterrupted()) {
                 try {
-                    Coroutine<S> coroutine = readyQueue.take();
+                    Coroutine<?> coroutine = readyQueue.take();
                     processingThreads.incrementAndGet();
                     processCoroutine(coroutine);
                 } catch (InterruptedException e) {
@@ -43,26 +43,26 @@ public class CoroutineManager<S> {
         });
     }
 
-    private void processCoroutine(Coroutine<S> coroutine) {
+    private <S> void processCoroutine(Coroutine<S> coroutine) {
         while (coroutine.state() == Coroutine.State.READY)
             coroutine.step(this);
         switch (coroutine.state()) {
             case COMPLETED -> {
                 activeCoroutines.remove(coroutine.id());
-                notifyListeners(listener -> listener.onComplete(coroutine));
+                notifyListeners(coroutine, CoroutineListener::onComplete);
             }
             case ERROR -> {
                 activeCoroutines.remove(coroutine.id());
-                notifyListeners(listener -> listener.onError(coroutine, coroutine.throwable()));
+                notifyListeners(coroutine, (listener, c) -> listener.onError(c, c.throwable()));
             }
         }
     }
 
-    public Coroutine<S> createCoroutine(RuntimeContext<S> runtimeContext, List<Statement<S>> statements) {
+    public <S> Coroutine<S> createCoroutine(RuntimeContext<S> runtimeContext, List<Statement<S>> statements) {
         return createCoroutine(UUID.randomUUID().toString(), runtimeContext, statements);
     }
 
-    public Coroutine<S> createCoroutine(String id, RuntimeContext<S> runtimeContext, List<Statement<S>> statements) {
+    public <S> Coroutine<S> createCoroutine(String id, RuntimeContext<S> runtimeContext, List<Statement<S>> statements) {
         checkRunning();
         CoroutineContext<S> context = new CoroutineContext<>(runtimeContext);
         context.pushFrame(new ExecutionFrame<>(statements, "main"));
@@ -71,16 +71,16 @@ public class CoroutineManager<S> {
         return coroutine;
     }
 
-    public CompletableFuture<Void> startCoroutine(RuntimeContext<S> runtimeContext, List<Statement<S>> statements) {
+    public <S> CompletableFuture<Void> startCoroutine(RuntimeContext<S> runtimeContext, List<Statement<S>> statements) {
         return startCoroutine(UUID.randomUUID().toString(), runtimeContext, statements);
     }
 
-    public CompletableFuture<Void> startCoroutine(String id, RuntimeContext<S> runtimeContext, List<Statement<S>> statements) {
+    public <S> CompletableFuture<Void> startCoroutine(String id, RuntimeContext<S> runtimeContext, List<Statement<S>> statements) {
         Coroutine<S> coroutine = createCoroutine(id, runtimeContext, statements);
         return startCoroutine(coroutine);
     }
 
-    public CompletableFuture<Void> startCoroutine(Coroutine<S> coroutine) {
+    public <S> CompletableFuture<Void> startCoroutine(Coroutine<S> coroutine) {
         checkRunning();
         CompletableFuture<Void> future = new CompletableFuture<>();
         coroutine.addListener(new CoroutineListener<>() {
@@ -96,25 +96,25 @@ public class CoroutineManager<S> {
         });
         coroutine.state(Coroutine.State.READY);
         activeCoroutines.put(coroutine.id(), coroutine);
-        notifyListeners(listener -> listener.onStart(coroutine));
+        notifyListeners(coroutine, CoroutineListener::onStart);
         readyQueue.add(coroutine);
         return future;
     }
 
-    public void resumeCoroutine(Coroutine<S> coroutine) {
+    public <S> void resumeCoroutine(Coroutine<S> coroutine) {
         checkRunning();
         if (!activeCoroutines.containsKey(coroutine.id()))
             throw new IllegalArgumentException("Coroutine not found: " + coroutine.id());
         coroutine.state(Coroutine.State.READY);
-        notifyListeners(listener -> listener.onResume(coroutine));
+        notifyListeners(coroutine, CoroutineListener::onResume);
         readyQueue.add(coroutine);
     }
 
-    public void suspendCoroutine(Coroutine<S> coroutine) {
+    public <S> void suspendCoroutine(Coroutine<S> coroutine) {
         checkRunning();
         if (!activeCoroutines.containsKey(coroutine.id()))
             throw new IllegalArgumentException("Coroutine not found: " + coroutine.id());
-        notifyListeners(listener -> listener.onSuspend(coroutine));
+        notifyListeners(coroutine, CoroutineListener::onSuspend);
         coroutine.state(Coroutine.State.SUSPENDED);
     }
 
@@ -151,11 +151,11 @@ public class CoroutineManager<S> {
         }
     }
 
-    public void addGlobalListener(CoroutineListener<S> listener) {
+    public void addGlobalListener(CoroutineListener<?> listener) {
         globalListeners.add(listener);
     }
 
-    public void removeGlobalListener(CoroutineListener<S> listener) {
+    public void removeGlobalListener(CoroutineListener<?> listener) {
         globalListeners.remove(listener);
     }
 
@@ -163,7 +163,7 @@ public class CoroutineManager<S> {
         return scheduler;
     }
 
-    public Collection<Coroutine<S>> activeCoroutines() {
+    public Collection<Coroutine<?>> activeCoroutines() {
         return Collections.unmodifiableCollection(activeCoroutines.values());
     }
 
@@ -177,9 +177,10 @@ public class CoroutineManager<S> {
                 .count();
     }
 
-    private void notifyListeners(Consumer<CoroutineListener<S>>action) {
-        for (CoroutineListener<S> listener : globalListeners)
-            action.accept(listener);
+    private <S> void notifyListeners(Coroutine<S> coroutine, BiConsumer<CoroutineListener<S>, Coroutine<S>> action) {
+        for (CoroutineListener<?> listener : globalListeners)
+            //noinspection unchecked
+            action.accept(((CoroutineListener<S>) listener), coroutine);
     }
 
     private void checkRunning() {

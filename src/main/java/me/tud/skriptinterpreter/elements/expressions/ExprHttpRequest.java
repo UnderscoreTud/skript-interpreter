@@ -1,5 +1,6 @@
 package me.tud.skriptinterpreter.elements.expressions;
 
+import me.tud.skriptinterpreter.lang.AsyncExpression;
 import me.tud.skriptinterpreter.lang.Expression;
 import me.tud.skriptinterpreter.lang.Expressions;
 import me.tud.skriptinterpreter.parser.ParseContext;
@@ -9,12 +10,13 @@ import me.tud.skriptinterpreter.runtime.exceptions.ExecutionException;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.concurrent.CompletableFuture;
 
-public class ExprString<S> implements Expression<S, String> {
+public class ExprHttpRequest<S> implements AsyncExpression<S, String> {
 
     private final String value;
 
-    public ExprString(String value) {
+    public ExprHttpRequest(String value) {
         this.value = value;
     }
 
@@ -29,8 +31,17 @@ public class ExprString<S> implements Expression<S, String> {
     }
 
     @Override
-    public String evaluate(RuntimeContext<S> context) throws ExecutionException {
-        return value;
+    public CompletableFuture<String> evaluateAsync(RuntimeContext<S> context) throws ExecutionException {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                System.out.println("Fetching HTTP request: " + value);
+                Thread.sleep(2000); // Simulate network delay
+                System.out.println("HTTP request fetched: " + value);
+                return value;
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
 }

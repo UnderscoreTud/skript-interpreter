@@ -8,6 +8,10 @@ import me.tud.skriptinterpreter.parser.exceptions.ParseException;
 import me.tud.skriptinterpreter.runtime.RuntimeContext;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+
 public class ExpressionPatternNode extends PatternNode {
 
     private final String value;
@@ -54,6 +58,11 @@ public class ExpressionPatternNode extends PatternNode {
             @Override
             public boolean init(Expressions<Object> expressions, ParseContext context) throws ParseException {
                 return true;
+            }
+
+            @Override
+            public Collection<Expression<Object, ?>> awaitingExpressions() {
+                return Collections.emptySet();
             }
 
             @Override

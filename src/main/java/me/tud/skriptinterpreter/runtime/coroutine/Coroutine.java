@@ -1,8 +1,12 @@
 package me.tud.skriptinterpreter.runtime.coroutine;
 
+import me.tud.skriptinterpreter.lang.AsyncExpression;
+import me.tud.skriptinterpreter.lang.Expression;
 import me.tud.skriptinterpreter.lang.Statement;
+import me.tud.skriptinterpreter.runtime.RuntimeContext;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 
 public class Coroutine<S> {
@@ -106,10 +110,36 @@ public class Coroutine<S> {
 
         try {
             Statement<S> statement = frame.next();
-            statement.execute(context.runtimeContext(), manager, this);
+            CompletableFuture<Void> future = waitForExpressions(context.runtimeContext(), statement.awaitingExpressions());
+            if (future.isDone()) {
+                statement.execute(context.runtimeContext(), manager, this);
+                return;
+            }
+            manager.suspendCoroutine(this);
+            future.whenComplete((result, error) -> {
+                if (error != null) {
+                    error(error);
+                    return;
+                }
+                try {
+                    statement.execute(context.runtimeContext(), manager, this);
+                    manager.resumeCoroutine(this);
+                } catch (Throwable throwable) {
+                    error(throwable);
+                }
+            });
         } catch (Throwable throwable) {
             error(throwable);
         }
+    }
+
+    private CompletableFuture<Void> waitForExpressions(RuntimeContext<S> context, Collection<Expression<S, ?>> expressions) {
+        List<CompletableFuture<?>> futures = new ArrayList<>(expressions.size());
+        for (Expression<S, ?> expression : expressions) {
+            if (expression instanceof AsyncExpression<S, ?> asyncExpression)
+                futures.add(asyncExpression.evaluateAsyncAndCache(context));
+        }
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
     }
 
     protected void notifyListeners(BiConsumer<CoroutineListener<S>, Coroutine<S>> action) {

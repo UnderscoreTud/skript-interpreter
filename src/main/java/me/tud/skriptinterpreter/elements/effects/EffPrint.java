@@ -10,21 +10,29 @@ import me.tud.skriptinterpreter.runtime.coroutine.Coroutine;
 import me.tud.skriptinterpreter.runtime.coroutine.CoroutineManager;
 import me.tud.skriptinterpreter.runtime.exceptions.ExecutionException;
 
-public class EffPrint implements Statement<Object> {
+import java.util.Collection;
+import java.util.Collections;
 
-    private final Expression<Object, String> message;
+public class EffPrint<S> implements Statement<S> {
 
-    public EffPrint(Expression<Object, String> message) {
+    private final Expression<S, String> message;
+
+    public EffPrint(Expression<S, String> message) {
         this.message = message;
     }
 
     @Override
-    public boolean init(Expressions<Object> expressions, ParseContext context) throws ParseException {
+    public boolean init(Expressions<S> expressions, ParseContext context) throws ParseException {
         return true;
     }
 
     @Override
-    public void execute(RuntimeContext<Object> context, CoroutineManager manager, Coroutine<Object> coroutine) throws ExecutionException {
+    public Collection<Expression<S, ?>> awaitingExpressions() {
+        return Collections.singleton(message);
+    }
+
+    @Override
+    public void execute(RuntimeContext<S> context, CoroutineManager manager, Coroutine<S> coroutine) throws ExecutionException {
         System.out.println(message.evaluate(context));
     }
 

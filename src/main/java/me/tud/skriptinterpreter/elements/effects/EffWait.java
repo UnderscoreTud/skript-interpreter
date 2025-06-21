@@ -1,5 +1,6 @@
 package me.tud.skriptinterpreter.elements.effects;
 
+import me.tud.skriptinterpreter.lang.Expression;
 import me.tud.skriptinterpreter.lang.Expressions;
 import me.tud.skriptinterpreter.lang.Statement;
 import me.tud.skriptinterpreter.parser.ParseContext;
@@ -9,9 +10,11 @@ import me.tud.skriptinterpreter.runtime.coroutine.Coroutine;
 import me.tud.skriptinterpreter.runtime.coroutine.CoroutineManager;
 import me.tud.skriptinterpreter.runtime.exceptions.ExecutionException;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
-public class EffWait implements Statement<Object> {
+public class EffWait<S> implements Statement<S> {
 
     private final long delay;
     private final TimeUnit unit;
@@ -22,12 +25,17 @@ public class EffWait implements Statement<Object> {
     }
 
     @Override
-    public boolean init(Expressions<Object> expressions, ParseContext context) throws ParseException {
+    public boolean init(Expressions<S> expressions, ParseContext context) throws ParseException {
         return true;
     }
 
     @Override
-    public void execute(RuntimeContext<Object> context, CoroutineManager manager, Coroutine<Object> coroutine) throws ExecutionException {
+    public Collection<Expression<S, ?>> awaitingExpressions() {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void execute(RuntimeContext<S> context, CoroutineManager manager, Coroutine<S> coroutine) throws ExecutionException {
         if (delay < 0) {
             throw new ExecutionException("Delay cannot be negative: " + delay);
         }

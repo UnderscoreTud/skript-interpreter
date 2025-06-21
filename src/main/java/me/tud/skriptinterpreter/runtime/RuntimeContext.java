@@ -37,4 +37,11 @@ public final class RuntimeContext<S> implements ExecutionContext {
         return resultCache;
     }
 
+    public <T> RuntimeContext<T> cast(Class<T> type) {
+        if (type.isInstance(source))
+            //noinspection unchecked
+            return (RuntimeContext<T>) this;
+        throw new ClassCastException("Cannot cast RuntimeContext from " + source.getClass().getName() + " to " + type.getName());
+    }
+
 }

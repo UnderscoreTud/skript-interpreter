@@ -1,7 +1,9 @@
 package me.tud.skriptinterpreter.pattern;
 
 import me.tud.skriptinterpreter.lexer.LexicalAnalyzer;
+import me.tud.skriptinterpreter.lexer.Token;
 import me.tud.skriptinterpreter.lexer.TokenIterator;
+import me.tud.skriptinterpreter.lexer.TokenType;
 import me.tud.skriptinterpreter.pattern.peg.PegPatternParser;
 import me.tud.skriptinterpreter.pattern.peg.node.PegNode;
 import me.tud.skriptinterpreter.util.StringReader;
@@ -52,19 +54,8 @@ public class PatternTrie {
         if (node == root)
             return matchChildren(node, tokens, metadata);
 
-        if (node.defersMatching() && !node.children().isEmpty() && tokens.tokensLeft() > 1) {
-            int start = tokens.position();
-            do {
-                tokens.next();
-                MatchResult result = matchChildren(node, tokens, metadata);
-                if (!result.success())
-                    continue;
-                TokenIterator subTokens = tokens.subIterator(start, tokens.position() - 1);
-                if (node.matches(subTokens, metadata))
-                    return result;
-            } while (tokens.hasNext());
-            return MatchResult.fail(tokens.input());
-        }
+        if (node.defersMatching() && !node.children().isEmpty() && tokens.tokensLeft() > 1)
+            return deferMatch(node, tokens, metadata);
 
         if (!node.matches(tokens, metadata))
             return MatchResult.fail(tokens.input());
@@ -76,6 +67,46 @@ public class PatternTrie {
         }
 
         return matchChildren(node, tokens, metadata);
+    }
+
+    private MatchResult deferMatch(PatternNode node, TokenIterator tokens, MatchResult.Metadata metadata) {
+        int start = tokens.position();
+        Token peek = tokens.peek();
+        if (peek.type() == TokenType.PUNCTUATION && peek.value().equals("(") && skipToClosingParenthesis(tokens)) {
+            TokenIterator subTokens = tokens.subIterator(start, tokens.position() - 1);
+            if (node.matches(subTokens, metadata))
+                return matchChildren(node, subTokens, metadata);
+            tokens.position(start);
+        }
+        do {
+            tokens.next();
+            MatchResult result = matchChildren(node, tokens, metadata);
+            if (!result.success())
+                continue;
+            TokenIterator subTokens = tokens.subIterator(start, tokens.position() - 1);
+            if (node.matches(subTokens, metadata))
+                return result;
+        } while (tokens.hasNext());
+        return MatchResult.fail(tokens.input());
+    }
+
+    private boolean skipToClosingParenthesis(TokenIterator tokens) {
+        int start = tokens.position();
+        int depth = 0;
+        while (tokens.hasNext()) {
+            Token token = tokens.next();
+            if (token.type() != TokenType.PUNCTUATION)
+                continue;
+            if (token.value().equals("(")) {
+                depth++;
+            } else if (token.value().equals(")")) {
+                depth--;
+                if (depth == 0)
+                    return true;
+            }
+        }
+        tokens.position(start);
+        return false;
     }
 
     private MatchResult matchChildren(PatternNode node, TokenIterator tokens, MatchResult.Metadata metadata) {

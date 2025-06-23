@@ -5,7 +5,7 @@ import java.util.List;
 public sealed interface PegNode permits
         AlternationNode, ExpressionNode, GroupNode,
         LiteralNode, OptionalNode, RegexNode,
-        SequenceNode, WhitespaceNode {
+        SequenceNode {
 
     List<String> expand();
 

@@ -15,16 +15,16 @@ public class PegPatternParser {
         this.reader = new StringReader(pattern);
     }
 
-    public PegNode parse() {
-        return parseAlternation();
-    }
-
     public int expressionCount() {
         return expressionIndex;
     }
 
     public int regexCount() {
         return regexIndex;
+    }
+
+    public PegNode parse() {
+        return parseAlternation();
     }
 
     private PegNode parseAlternation() {
@@ -95,22 +95,14 @@ public class PegPatternParser {
     }
 
     private PegNode parseLiteral() {
-        if (Character.isWhitespace(reader.peek()))
-            return parseWhitespace();
         StringBuilder sb = new StringBuilder();
         while (reader.canRead()) {
             char c = reader.peek();
-            if ("()[]%<>|".indexOf(c) != -1 || Character.isWhitespace(c))
+            if ("()[]%<>|".indexOf(c) != -1)
                 break;
             sb.append(reader.read());
         }
         return new LiteralNode(sb.toString());
-    }
-
-    private PegNode parseWhitespace() {
-        while (reader.canRead() && Character.isWhitespace(reader.peek()))
-            reader.skip();
-        return new WhitespaceNode();
     }
 
 }

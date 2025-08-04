@@ -48,10 +48,6 @@ public class TokenIterator implements Iterator<Token>, Cloneable {
         this.position = position;
     }
 
-    public int tokensLeft() {
-        return tokens.length - position;
-    }
-
     public TokenIterator subIterator(int start, int end) {
         if (start < 0 || end > tokens.length || start >= end)
             throw new IndexOutOfBoundsException("Invalid sub-iterator range: " + start + " to " + end);

@@ -1,6 +1,6 @@
 package me.tud.skriptinterpreter.pattern;
 
-import me.tud.skriptinterpreter.lexer.TokenIterator;
+import me.tud.skriptinterpreter.lexer.LexicalAnalyzer;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -35,7 +35,7 @@ public class RegexPatternNode extends PatternNode {
     }
 
     @Override
-    public boolean matches(TokenIterator tokens, MatchResult.Metadata metadata) {
+    public boolean matches(LexicalAnalyzer tokens, MatchResult.Metadata metadata) {
         StringBuilder input = new StringBuilder();
         while (tokens.hasNext())
             input.append(tokens.next().value());
@@ -43,7 +43,7 @@ public class RegexPatternNode extends PatternNode {
         Matcher matcher = pattern.matcher(input.toString().trim());
         if (!matcher.matches())
             return false;
-        metadata.regexes()[index] = matcher.toMatchResult();
+        metadata.whenReady(() -> metadata.regexes()[index] = matcher.toMatchResult());
         return true;
     }
 

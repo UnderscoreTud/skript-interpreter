@@ -1,6 +1,6 @@
 package me.tud.skriptinterpreter.pattern;
 
-import me.tud.skriptinterpreter.lexer.TokenIterator;
+import me.tud.skriptinterpreter.lexer.LexicalAnalyzer;
 
 public class RootPatternNode extends PatternNode {
 
@@ -15,7 +15,7 @@ public class RootPatternNode extends PatternNode {
     }
 
     @Override
-    public boolean matches(TokenIterator tokens, MatchResult.Metadata metadata) {
+    public boolean matches(LexicalAnalyzer tokens, MatchResult.Metadata metadata) {
         return true;
     }
 

@@ -3,29 +3,44 @@ package me.tud.skriptinterpreter.lexer;
 import me.tud.skriptinterpreter.util.StringReader;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
-public class LexicalAnalyzer {
+public class LexicalAnalyzer implements Iterator<Token>, Cloneable {
 
     private final StringReader reader;
 
+    private Token tokenCache;
+
     public LexicalAnalyzer(String input) {
-        this.reader = new StringReader(input);
+        this(new StringReader(input));
+    }
+
+    public LexicalAnalyzer(StringReader reader) {
+        this.reader = reader;
+    }
+
+    public String input() {
+        return reader.input();
+    }
+
+    public StringReader reader() {
+        return reader;
+    }
+
+    public int cursor() {
+        return reader.cursor();
+    }
+
+    public void cursor(int cursor) {
+        reader.cursor(cursor);
+        tokenCache = null;
     }
 
     public List<Token> tokenize() {
         List<Token> tokens = new ArrayList<>();
-        Token token, lastToken = null;
-        while ((token = nextToken()) != null) {
-            if (token.type() == TokenType.WORD && lastToken != null && lastToken.type() == TokenType.WORD) {
-                String mergedValue = lastToken.value() + token.value();
-                lastToken = new Token(TokenType.WORD, mergedValue, lastToken.line(), lastToken.column());
-                tokens.set(tokens.size() - 1, lastToken);
-                continue;
-            }
-            tokens.add(token);
-            lastToken = token;
-        }
+        while (hasNext())
+            tokens.add(next());
         return tokens;
     }
 
@@ -33,10 +48,39 @@ public class LexicalAnalyzer {
         return new TokenIterator(reader.input(), tokenize().toArray(new Token[0]));
     }
 
-    public Token nextToken() {
-        if (!reader.canRead())
-            return null;
+    @Override
+    public boolean hasNext() {
+        return reader.canRead() || tokenCache != null;
+    }
 
+    @Override
+    public Token next() {
+        if (tokenCache != null) {
+            Token token = tokenCache;
+            tokenCache = null;
+            return token;
+        }
+
+        if (!hasNext())
+            throw new IllegalStateException("No more tokens available");
+
+        Token token = nextToken0();
+        if (token != null)
+            return token;
+
+        int start = reader.cursor(), end;
+        int line = reader.line();
+        int column = reader.column();
+        do {
+            reader.skip();
+            end = reader.cursor();
+        } while (reader.canRead() && (token = nextToken0()) == null);
+
+        tokenCache = token;
+        return new Token(TokenType.WORD, input().substring(start, end), line, column);
+    }
+
+    private Token nextToken0() {
         int start = reader.cursor();
         char current = reader.peek();
         int line = reader.line();
@@ -51,7 +95,7 @@ public class LexicalAnalyzer {
         } else if (current == '#') {
             String comment = reader.readUntil(c -> c == '\n');
 //            return new Token(TokenType.COMMENT, comment, line, column);
-            return nextToken();
+            return next();
         } else if (current == '"') {
             String string = readString();
             if (string != null)
@@ -81,8 +125,7 @@ public class LexicalAnalyzer {
             }
         }
 
-        reader.skip();
-        return new Token(TokenType.WORD, String.valueOf(current), line, column);
+        return null;
     }
 
     private String readString() {
@@ -144,6 +187,11 @@ public class LexicalAnalyzer {
 
     private boolean isValidDigitPart(char c) {
         return (c >= '0' && c <= '9') || c == '.';
+    }
+
+    @Override
+    public LexicalAnalyzer clone() {
+        return new LexicalAnalyzer(reader.clone());
     }
 
 }

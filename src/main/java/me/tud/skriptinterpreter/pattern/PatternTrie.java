@@ -9,7 +9,7 @@ import me.tud.skriptinterpreter.pattern.peg.node.PegNode;
 import me.tud.skriptinterpreter.util.StringReader;
 import org.jetbrains.annotations.Nullable;
 
-public class PatternTrie {
+public class PatternTrie { // TODO FIX PATTERN MATCHING (probably needs to be rewritten (maybe use a different approach?)) /shrug
 
     private final RootPatternNode root = new RootPatternNode();
 
@@ -17,11 +17,11 @@ public class PatternTrie {
         return root;
     }
 
-    public void insert(String pattern) {
-        insert(pattern, null);
+    public void registerPattern(String pattern) {
+        registerPattern(pattern, null);
     }
 
-    public void insert(String pattern, @Nullable PatternTrie expressionTrie) {
+    public void registerPattern(String pattern, @Nullable PatternTrie expressionTrie) {
         PegPatternParser parser = new PegPatternParser(pattern);
         PegNode parsed = parser.parse();
         PatternInfo patternInfo = new PatternInfo(pattern, parser.expressionCount(), parser.regexCount());
@@ -29,11 +29,12 @@ public class PatternTrie {
             insertPattern(root, new StringReader(expandedPattern.trim()), patternInfo, expressionTrie);
     }
 
+
     public MatchResult match(String input) {
-        return match(new LexicalAnalyzer(input).iterator());
+        return match(new LexicalAnalyzer(input));
     }
 
-    public MatchResult match(TokenIterator tokens) {
+    public MatchResult match(LexicalAnalyzer tokens) {
         return match(root, tokens, new MatchResult.Metadata());
     }
 
@@ -50,48 +51,43 @@ public class PatternTrie {
         insertPattern(node.children().computeIfAbsent(next.key(), k -> next), reader, patternInfo, expressionTrie);
     }
 
-    private MatchResult match(PatternNode node, TokenIterator tokens, MatchResult.Metadata metadata) {
+    private MatchResult match(PatternNode node, LexicalAnalyzer tokens, MatchResult.Metadata metadata) {
         if (node == root)
             return matchChildren(node, tokens, metadata);
 
-        if (node.defersMatching() && !node.children().isEmpty() && tokens.tokensLeft() > 1)
+        if (node.defersMatching() && !node.children().isEmpty())
             return deferMatch(node, tokens, metadata);
 
         if (!node.matches(tokens, metadata))
             return MatchResult.fail(tokens.input());
 
-        if (node.terminal) {
-            metadata.allocateExpressions(node.patternInfo.expressionCount());
-            metadata.allocateRegexes(node.patternInfo.regexCount());
-            return MatchResult.success(node.patternInfo.pattern(), tokens.input(), metadata);
-        }
+        if (tokens.hasNext() || !node.terminal)
+            return matchChildren(node, tokens, metadata);
 
-        return matchChildren(node, tokens, metadata);
+        metadata.allocateExpressions(node.patternInfo.expressionCount());
+        metadata.allocateRegexes(node.patternInfo.regexCount());
+        metadata.ready();
+        return MatchResult.success(node.patternInfo.pattern(), tokens.input(), metadata);
     }
 
-    private MatchResult deferMatch(PatternNode node, TokenIterator tokens, MatchResult.Metadata metadata) {
-        int start = tokens.position();
-        Token peek = tokens.peek();
-        if (peek.type() == TokenType.PUNCTUATION && peek.value().equals("(") && skipToClosingParenthesis(tokens)) {
-            TokenIterator subTokens = tokens.subIterator(start, tokens.position() - 1);
-            if (node.matches(subTokens, metadata))
-                return matchChildren(node, subTokens, metadata);
-            tokens.position(start);
-        }
-        do {
-            tokens.next();
+    private MatchResult deferMatch(PatternNode node, LexicalAnalyzer tokens, MatchResult.Metadata metadata) {
+        int start = tokens.cursor();
+        int remaining = tokens.input().length() - tokens.cursor();
+        for (int offset = 1; offset < remaining; offset++) {
+            tokens.cursor(start + offset);
             MatchResult result = matchChildren(node, tokens, metadata);
             if (!result.success())
                 continue;
-            TokenIterator subTokens = tokens.subIterator(start, tokens.position() - 1);
-            if (node.matches(subTokens, metadata))
+            LexicalAnalyzer expressionTokens = new LexicalAnalyzer(tokens.input().substring(start, start + offset));
+            if (node.matches(expressionTokens, metadata))
                 return result;
-        } while (tokens.hasNext());
+        }
+        tokens.cursor(start);
         return MatchResult.fail(tokens.input());
     }
 
-    private boolean skipToClosingParenthesis(TokenIterator tokens) {
-        int start = tokens.position();
+    private boolean skipToClosingParenthesis(LexicalAnalyzer tokens) {
+        int start = tokens.cursor();
         int depth = 0;
         while (tokens.hasNext()) {
             Token token = tokens.next();
@@ -105,21 +101,49 @@ public class PatternTrie {
                     return true;
             }
         }
-        tokens.position(start);
+        tokens.cursor(start);
         return false;
     }
 
-    private MatchResult matchChildren(PatternNode node, TokenIterator tokens, MatchResult.Metadata metadata) {
+    private MatchResult matchChildren(PatternNode node, LexicalAnalyzer tokens, MatchResult.Metadata metadata) {
         if (!tokens.hasNext())
             return MatchResult.fail(tokens.input());
 
+        int start = tokens.cursor();
+        MatchResult result = matchLiteral(node, tokens, metadata);
+        if (result.success())
+            return result;
+        tokens.cursor(start);
+
         for (PatternNode child : node.children().values()) {
-            int start = tokens.position();
-            MatchResult result = match(child, tokens, metadata);
+            if (child.type() == LiteralPatternNode.class)
+                continue;
+
+            start = tokens.cursor();
+            result = match(child, tokens.clone(), metadata);
             if (result.success())
                 return result;
-            tokens.position(start);
+            tokens.cursor(start);
         }
+
+        return MatchResult.fail(tokens.input());
+    }
+
+    private MatchResult matchLiteral(PatternNode node, LexicalAnalyzer tokens, MatchResult.Metadata metadata) {
+        if (!tokens.hasNext())
+            return MatchResult.fail(tokens.input());
+
+        int start = tokens.cursor();
+        Token token = tokens.next();
+        int length = token.value().length();
+        for (int offset = length; offset > 0; offset--) {
+            PatternNode child = node.children().get(PatternNode.Key.literal(token.value().substring(0, offset)));
+            if (child != null) {
+                tokens.cursor(start + offset);
+                return match(child, tokens, metadata);
+            }
+        }
+        tokens.cursor(start);
         return MatchResult.fail(tokens.input());
     }
 
@@ -143,7 +167,7 @@ public class PatternTrie {
         char current = reader.peek();
         if (Character.isWhitespace(current)) {
             reader.readUntil(c -> !Character.isWhitespace(c));
-            return new WhitespacePatternNode();
+            return new LiteralPatternNode(" ");
         }
         switch (current) {
             case '%' -> {
@@ -163,9 +187,12 @@ public class PatternTrie {
                 return RegexPatternNode.parse(parts[0], Integer.parseInt(parts[1]));
             }
         }
-        String literal = reader.readUntil(c -> c == '%' || c == '<' || Character.isWhitespace(c));
-        if (!literal.isEmpty())
-            return new LiteralPatternNode(literal);
+        LexicalAnalyzer lexer = new LexicalAnalyzer(reader.input().substring(reader.cursor()));
+        Token token = lexer.next();
+        if (!token.value().isEmpty()) {
+            reader.cursor(reader.cursor() + token.value().length());
+            return new LiteralPatternNode(token.value());
+        }
         throw new MalformedPatternException("Unexpected character in pattern: " + current + " in " + reader.input());
     }
 

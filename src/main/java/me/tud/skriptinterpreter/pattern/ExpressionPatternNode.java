@@ -2,7 +2,7 @@ package me.tud.skriptinterpreter.pattern;
 
 import me.tud.skriptinterpreter.lang.Expression;
 import me.tud.skriptinterpreter.lang.Expressions;
-import me.tud.skriptinterpreter.lexer.TokenIterator;
+import me.tud.skriptinterpreter.lexer.LexicalAnalyzer;
 import me.tud.skriptinterpreter.parser.ParseContext;
 import me.tud.skriptinterpreter.parser.exceptions.ParseException;
 import me.tud.skriptinterpreter.runtime.RuntimeContext;
@@ -10,7 +10,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 
 public class ExpressionPatternNode extends PatternNode {
 
@@ -50,11 +49,11 @@ public class ExpressionPatternNode extends PatternNode {
     }
 
     @Override
-    public boolean matches(TokenIterator tokens, MatchResult.Metadata metadata) {
+    public boolean matches(LexicalAnalyzer tokens, MatchResult.Metadata metadata) {
         MatchResult result = trie.match(tokens);
         if (!result.success())
             return false;
-        metadata.expressions().getAll()[index()] = new Expression<>() {
+        metadata.whenReady(() -> metadata.expressions().getAll()[index()] = new Expression<>() {
             @Override
             public boolean init(Expressions<Object> expressions, ParseContext context) throws ParseException {
                 return true;
@@ -74,7 +73,7 @@ public class ExpressionPatternNode extends PatternNode {
             public String toString() {
                 return "EXPRESSION:" + evaluate(null).toString();
             }
-        };
+        });
         return true;
     }
 

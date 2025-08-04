@@ -6,4 +6,8 @@ public class MalformedPatternException extends RuntimeException {
         super(message);
     }
 
+    public MalformedPatternException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
 }

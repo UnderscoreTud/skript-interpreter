@@ -1,0 +1,9 @@
+[versions]
+lombok = "1.18.42"
+junit-jupiter = "5.13.4"
+jetbrains-annotations = "26.0.2-1"
+
+[libraries]
+lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit-jupiter" }
+jetbrains-annotations = { module = "org.jetbrains:annotations", version.ref = "jetbrains-annotations" }

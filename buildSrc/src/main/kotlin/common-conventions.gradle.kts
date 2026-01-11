@@ -23,6 +23,7 @@ dependencies {
     compileOnly(libs.lombok)
     annotationProcessor(libs.lombok)
     api(libs.jetbrains.annotations)
+    implementation(libs.slf4j.api)
 
     testImplementation(libs.junit.jupiter)
 }

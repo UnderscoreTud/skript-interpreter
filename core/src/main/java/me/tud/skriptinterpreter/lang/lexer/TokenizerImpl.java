@@ -135,19 +135,13 @@ public class TokenizerImpl implements Tokenizer {
         Position start = position.backup();
         expectOrThrow(opening, span(start));
         StringBuilder builder = new StringBuilder();
-        boolean escaped = false, inExpression = false;
+        boolean inExpression = false;
         Position expressionStart = null;
         while (canRead()) {
             char c = peek();
 
             if (c == NEW_LINE)
                 break;
-
-            if (escaped) {
-                escaped = false;
-                builder.append(read());
-                continue;
-            }
 
             if ((c == '"' || c == '{') && inExpression) {
                 builder.append(c == '"' ? readString() : readVariable());
@@ -158,8 +152,8 @@ public class TokenizerImpl implements Tokenizer {
 
             if (c == closing) {
                 if (opening == closing && canRead(1) && peek(1) == closing) {
-                    skip();
-                    escaped = true;
+                    builder.append(read()); // read first quote
+                    builder.append(read()); // read second quote
                     continue;
                 }
                 skip(); // skip closing quote
@@ -168,8 +162,8 @@ public class TokenizerImpl implements Tokenizer {
 
             if (c == '%') {
                 if (canRead(1) && peek(1) == '%') {
-                    skip();
-                    escaped = true;
+                    builder.append(read()); // read first %
+                    builder.append(read()); // read second %
                     continue;
                 }
                 inExpression = !inExpression;
@@ -246,21 +240,26 @@ public class TokenizerImpl implements Tokenizer {
         Position start = position.backup();
         String indentation = readWhitespace();
 
-        if (indentation == null || !canRead() || peek() == '#')
+        if (!canRead() || peek() == '#')
             return false;
 
         if (this.indentation == null) {
+            if (indentation == null)
+                return false;
             this.indentation = indentation;
             indentationLevel = 1;
             pending.add(new Token(TokenType.INDENT, indentation, span(start)));
             return true;
         }
 
-        int level = StringUtils.countMatches(indentation, this.indentation);
-        if (this.indentation.length() * level != indentation.length()) {
-            throw new TokenizationException("Indentation must be made of repeated \""
-                    + StringEscapeUtils.escapeJava(this.indentation)
-                    + "\" but got \"" + StringEscapeUtils.escapeJava(indentation) + "\"", span(start), input);
+        int level = 0;
+        if (indentation != null) {
+            level = StringUtils.countMatches(indentation, this.indentation);
+            if (this.indentation.length() * level != indentation.length()) {
+                throw new TokenizationException("Indentation must be made of repeated \""
+                        + StringEscapeUtils.escapeJava(this.indentation)
+                        + "\" but got \"" + StringEscapeUtils.escapeJava(indentation) + "\"", span(start), input);
+            }
         }
         int diff = level - indentationLevel;
         if (diff == 0)
@@ -276,7 +275,7 @@ public class TokenizerImpl implements Tokenizer {
             return true;
         }
         for (int i = 0; i < -diff; i++)
-            pending.add(new Token(TokenType.DEDENT, indentation, span(start)));
+            pending.add(new Token(TokenType.DEDENT, indentation == null ? "" : indentation, span(start)));
         return true;
     }
 

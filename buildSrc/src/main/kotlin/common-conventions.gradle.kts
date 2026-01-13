@@ -24,8 +24,10 @@ dependencies {
     annotationProcessor(libs.lombok)
     api(libs.jetbrains.annotations)
     implementation(libs.slf4j.api)
+    implementation(libs.apache.commons.text)
 
     testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
 }
 
 tasks.test {

@@ -1,63 +1,49 @@
-# User-specific stuff
-.idea/
-.target/
+# Gradle
 .gradle/
 build/
+!gradle/wrapper/gradle-wrapper.jar
 
+# IntelliJ IDEA
+.idea/
 *.iml
-*.ipr
 *.iws
+*.ipr
+out/
 
-# IntelliJ
-/out/
+# Eclipse
+.settings/
+.classpath
+.project
+bin/
 
-# Compiled class file
+# VS Code
+.vscode/
+
+# Compiled Java files
 *.class
 
-# Log file
-*.log
-
-# BlueJ files
-*.ctxt
-
-# Package Files #
+# Package files
 *.jar
 *.war
-*.nar
 *.ear
+*.nar
 *.zip
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+# Logs and temporary files
+*.log
 hs_err_pid*
-
 *~
-
-# temporary files which can be created if a process still has a handle open of a deleted file
 .fuse_hidden*
-
-# KDE directory preferences
-.directory
-
-# Linux trash folder which might appear on any partition or disk
-.Trash-*
-
-# .nfs files are created when an open file is removed but is still being accessed
 .nfs*
 
-# General
+# OS specific
 .DS_Store
 .AppleDouble
 .LSOverride
-
-# Icon must end with two \r
 Icon
-
-# Thumbnails
 ._*
-
-# Files that might appear in the root of a volume
 .DocumentRevisions-V100
 .fseventsd
 .Spotlight-V100
@@ -65,53 +51,15 @@ Icon
 .Trashes
 .VolumeIcon.icns
 .com.apple.timemachine.donotpresent
-
-# Directories potentially created on remote AFP share
 .AppleDB
 .AppleDesktop
 Network Trash Folder
 Temporary Items
 .apdisk
-
-# Windows thumbnail cache files
 Thumbs.db
 Thumbs.db:encryptable
 ehthumbs.db
 ehthumbs_vista.db
-
-# Dump file
 *.stackdump
-
-# Folder config file
 [Dd]esktop.ini
-
-# Recycle Bin used on file shares
 $RECYCLE.BIN/
-
-# Windows Installer files
-*.cab
-*.msi
-*.msix
-*.msm
-*.msp
-
-# Windows shortcuts
-*.lnk
-
-target/
-
-pom.xml.tag
-pom.xml.releaseBackup
-pom.xml.versionsBackup
-pom.xml.next
-
-release.properties
-buildNumber.properties
-.mvn/timing.properties
-.mvn/wrapper/maven-wrapper.jar
-.flattened-pom.xml
-
-# Common working directory
-run/
-/target/
-/.idea/

@@ -26,6 +26,8 @@ dependencies {
     implementation(libs.slf4j.api)
     implementation(libs.apache.commons.text)
 
+    testCompileOnly(libs.lombok)
+    testAnnotationProcessor(libs.lombok)
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
 }

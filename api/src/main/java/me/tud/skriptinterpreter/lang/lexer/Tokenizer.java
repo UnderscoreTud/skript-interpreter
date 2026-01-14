@@ -4,8 +4,10 @@ import java.util.List;
 
 /**
  * Represents a tokenizer that converts source code into a list of tokens.
+ *
+ * @param <T> the type of tokens produced by this tokenizer
  */
-public interface Tokenizer {
+public interface Tokenizer<T extends Token<?>> {
 
     /**
      * Tokenizes the source code.
@@ -13,6 +15,6 @@ public interface Tokenizer {
      * @return a list of tokens
      * @throws TokenizationException if an error occurs during tokenization
      */
-    List<Token> tokenize() throws TokenizationException;
+    List<T> tokenize() throws TokenizationException;
 
 }

@@ -1,9 +1,7 @@
-package me.tud.skriptinterpreter.lang.lexer;
+package me.tud.skriptinterpreter.lang.lexer.source;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import me.tud.skriptinterpreter.lang.SourceSpan;
+import me.tud.skriptinterpreter.lang.lexer.AbstractTokenizer;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.jetbrains.annotations.Nullable;
@@ -11,16 +9,11 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 
 /**
- * Default implementation of the {@link Tokenizer} interface.
+ * Default implementation of the {@link SourceTokenizer} interface.
  */
-public class TokenizerImpl implements Tokenizer {
-    
-    private static final char NEW_LINE = '\n';
+public class SourceTokenizerImpl extends AbstractTokenizer<SourceToken> implements SourceTokenizer {
 
-    private final String file;
-    private final String input;
-    private final Deque<Token> pending = new ArrayDeque<>();
-    private final Position position;
+    private final Deque<SourceToken> pending = new ArrayDeque<>();
     private String indentation;
     private int indentationLevel;
     private int parenDepth;
@@ -30,44 +23,31 @@ public class TokenizerImpl implements Tokenizer {
      *
      * @param input the input to tokenize
      */
-    public TokenizerImpl(String input) {
+    public SourceTokenizerImpl(String input) {
         this("<unknown>", input);
     }
 
     /**
-     * Creates a new tokenizer for the given input from the specified file.
+     * Creates a new tokenizer for the given input from the specified origin.
      *
-     * @param file  the path to the file
-     * @param input the input to tokenize
+     * @param origin the path to the origin
+     * @param input  the input to tokenize
      */
-    public TokenizerImpl(String file, String input) {
-        this.file = file;
-        this.input = input;
-        this.position = new Position();
+    public SourceTokenizerImpl(String origin, String input) {
+        super(origin, input);
     }
 
-    @Override
-    public List<Token> tokenize() throws TokenizationException {
-        List<Token> tokens = new ArrayList<>();
-        Token token;
-        do {
-            token = nextToken();
-            tokens.add(token);
-        } while (token.type() != TokenType.EOF);
-        return tokens;
-    }
-
-    private Token nextToken() {
+    protected SourceToken nextToken() {
         if (!pending.isEmpty())
             return pending.poll();
 
         if (!canRead()) {
             if (indentationLevel-- > 0)
-                return new Token(TokenType.DEDENT, span());
-            return new Token(TokenType.EOF, span());
+                return new SourceToken(SourceTokenType.DEDENT, span());
+            return new SourceToken(SourceTokenType.EOF, span());
         }
 
-        Token token = readNewLines();
+        SourceToken token = readNewLines();
         if (token != null && parenDepth == 0)
             return token;
 
@@ -90,24 +70,24 @@ public class TokenizerImpl implements Tokenizer {
         char c = peek();
         switch (c) {
             case ':' -> {
-                return new Token(TokenType.COLON, String.valueOf(read()), span(start));
+                return new SourceToken(SourceTokenType.COLON, String.valueOf(read()), span(start));
             }
             case '(' -> {
                 parenDepth++;
-                return new Token(TokenType.LPAREN, String.valueOf(read()), span(start));
+                return new SourceToken(SourceTokenType.LPAREN, String.valueOf(read()), span(start));
             }
             case ')' -> {
                 parenDepth = Math.max(0, parenDepth - 1);
-                return new Token(TokenType.RPAREN, String.valueOf(read()), span(start));
+                return new SourceToken(SourceTokenType.RPAREN, String.valueOf(read()), span(start));
             }
             case ',' -> {
-                return new Token(TokenType.COMMA, String.valueOf(read()), span(start));
+                return new SourceToken(SourceTokenType.COMMA, String.valueOf(read()), span(start));
             }
             case '"' -> {
-                return new Token(TokenType.STRING, readString(), span(start));
+                return new SourceToken(SourceTokenType.STRING, readString(), span(start));
             }
             case '{' -> {
-                return new Token(TokenType.VARIABLE, readVariable(), span(start));
+                return new SourceToken(SourceTokenType.VARIABLE, readVariable(), span(start));
             }
         }
 
@@ -118,9 +98,9 @@ public class TokenizerImpl implements Tokenizer {
             skip();
 
         if (start.index != position.index)
-            return new Token(TokenType.WORD, input.substring(start.index, position.index), span(start));
+            return new SourceToken(SourceTokenType.WORD, input.substring(start.index, position.index), span(start));
 
-        return new Token(TokenType.SYMBOL, String.valueOf(read()), span(start));
+        return new SourceToken(SourceTokenType.SYMBOL, String.valueOf(read()), span(start));
     }
 
     private String readString() {
@@ -131,7 +111,7 @@ public class TokenizerImpl implements Tokenizer {
         return readQuoted("variable", '{', '}');
     }
 
-    private String readQuoted(String type, char opening, char closing) throws TokenizationException {
+    private String readQuoted(String type, char opening, char closing) throws SourceTokenizationException {
         Position start = position.backup();
         expectOrThrow(opening, span(start));
         StringBuilder builder = new StringBuilder();
@@ -173,17 +153,17 @@ public class TokenizerImpl implements Tokenizer {
             builder.append(read());
         }
         if (inExpression)
-            throw new TokenizationException("Unterminated expression: If you meant to write a single (%), then double it to escape it (%%)", span(expressionStart), input);
+            throw createException("Unterminated expression: If you meant to write a single (%), then double it to escape it (%%)", span(expressionStart));
         String message = "Unterminated " + type + ": ";
         if (canRead()) {
             message += "Expected closing '" + closing + "', got '" + StringEscapeUtils.escapeJava(String.valueOf(peek())) + "'";
         } else {
             message += "Reached end of line before closing '" + closing + "'";
         }
-        throw new TokenizationException(message, span(start), input);
+        throw createException(message, span(start));
     }
-    
-    private Token readNumber() {
+
+    private SourceToken readNumber() {
         Position start = position.backup();
         if (peek() == '-')
             skip();
@@ -201,7 +181,7 @@ public class TokenizerImpl implements Tokenizer {
                 break;
             skip();
         }
-        return new Token(TokenType.NUMBER, input.substring(start.index, position.index), span(start));
+        return new SourceToken(SourceTokenType.NUMBER, input.substring(start.index, position.index), span(start));
     }
 
     private boolean isDigit(char c) {
@@ -222,13 +202,13 @@ public class TokenizerImpl implements Tokenizer {
         return true;
     }
 
-    private @Nullable Token readNewLines() {
+    private @Nullable SourceToken readNewLines() {
         Position start = position.backup();
         while (canRead() && isNewLine(peek()))
             skip();
 
         if (start.index != position.index)
-            return new Token(TokenType.NEWLINE, span(start));
+            return new SourceToken(SourceTokenType.NEWLINE, span(start));
         return null;
     }
 
@@ -236,7 +216,7 @@ public class TokenizerImpl implements Tokenizer {
         return c == NEW_LINE;
     }
 
-    private boolean handleIndentation() throws TokenizationException {
+    private boolean handleIndentation() throws SourceTokenizationException {
         Position start = position.backup();
         String indentation = readWhitespace();
 
@@ -248,7 +228,7 @@ public class TokenizerImpl implements Tokenizer {
                 return false;
             this.indentation = indentation;
             indentationLevel = 1;
-            pending.add(new Token(TokenType.INDENT, indentation, span(start)));
+            pending.add(new SourceToken(SourceTokenType.INDENT, indentation, span(start)));
             return true;
         }
 
@@ -256,26 +236,26 @@ public class TokenizerImpl implements Tokenizer {
         if (indentation != null) {
             level = StringUtils.countMatches(indentation, this.indentation);
             if (this.indentation.length() * level != indentation.length()) {
-                throw new TokenizationException("Indentation must be made of repeated \""
+                throw createException("Indentation must be made of repeated \""
                         + StringEscapeUtils.escapeJava(this.indentation)
-                        + "\" but got \"" + StringEscapeUtils.escapeJava(indentation) + "\"", span(start), input);
+                        + "\" but got \"" + StringEscapeUtils.escapeJava(indentation) + "\"", span(start));
             }
         }
         int diff = level - indentationLevel;
         if (diff == 0)
             return false;
         if (diff > 1) {
-            throw new TokenizationException("Unexpected indentation: jumped from level "
-                    + indentationLevel + " to " + level, span(start), input);
+            throw createException("Unexpected indentation: jumped from level "
+                    + indentationLevel + " to " + level, span(start));
         }
 
         indentationLevel = level;
         if (diff == 1) {
-            pending.add(new Token(TokenType.INDENT, indentation, span(start)));
+            pending.add(new SourceToken(SourceTokenType.INDENT, indentation, span(start)));
             return true;
         }
         for (int i = 0; i < -diff; i++)
-            pending.add(new Token(TokenType.DEDENT, indentation == null ? "" : indentation, span(start)));
+            pending.add(new SourceToken(SourceTokenType.DEDENT, indentation == null ? "" : indentation, span(start)));
         return true;
     }
 
@@ -294,89 +274,9 @@ public class TokenizerImpl implements Tokenizer {
         return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z');
     }
 
-    private SourceSpan span() {
-        return span(position);
-    }
-
-    private SourceSpan span(Position start) {
-        return new SourceSpan(
-                file,
-                start.index,
-                position.index,
-                start.line,
-                position.line,
-                start.column,
-                position.column
-        );
-    }
-
-    private boolean canRead() {
-        return canRead(0);
-    }
-
-    private boolean canRead(int offset) {
-        return position.index + offset < input.length();
-    }
-
-    private char peek() {
-        return peek(0);
-    }
-
-    private char peek(int offset) {
-        return input.charAt(position.index + offset);
-    }
-
-    private char read() {
-        char c = input.charAt(position.index++);
-        if (c == '\r') {
-            if (canRead() && peek() == '\n')
-                position.index++;
-            position.line += 1;
-            position.column = 1;
-            return NEW_LINE;
-        } else if (c == '\n') {
-            position.line += 1;
-            position.column = 1;
-            return NEW_LINE;
-        }
-        position.column++;
-        return c;
-    }
-
-    private void skip() {
-        read();
-    }
-
-    private boolean expect(char c) {
-        return canRead() && read() == c;
-    }
-    
-    private void expectOrThrow(char c, SourceSpan span) {
-        if (!canRead())
-            throw new TokenizationException("Expected '" + c + "', but got EOF", span, input);
-        char got = read();
-        if (c != got)
-            throw new TokenizationException("Expected '" + c
-                    + "', but got '" + StringEscapeUtils.escapeJava(String.valueOf(got)) + "'", span, input);
-    }
-
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    private static class Position {
-
-        private int index, line = 1, column = 1;
-    
-        public Position backup() {
-            return new Position(index, line, column);
-        }
-
-        public void apply(Position position) {
-            this.index = position.index;
-            this.line = position.line;
-            this.column = position.column;
-        }
-
+    @Override
+    protected SourceTokenizationException createException(String message, SourceSpan span) {
+        return new SourceTokenizationException(message, span, input);
     }
 
 }

@@ -5,20 +5,43 @@ import me.tud.skriptinterpreter.lang.SourceSpan;
 /**
  * Represents a lexical token.
  *
- * @param type the type of the token
- * @param text the raw text of the token
- * @param span the span of the token in the source code
+ * @param <T> the type of token type
  */
-public record Token(TokenType type, String text, SourceSpan span) {
+public interface Token<T extends TokenType<?>> {
 
     /**
-     * Creates a new token with an empty text.
-     *
-     * @param type the type of the token
-     * @param span the span of the token in the source code
+     * @return the type of this token
      */
-    public Token(TokenType type, SourceSpan span) {
-        this(type, "", span);
+    T type();
+
+    /**
+     * @return the text of this token
+     */
+    String text();
+
+    /**
+     * @return the source span of this token
+     */
+    SourceSpan span();
+    
+    /**
+     * Calculates the spacing between this token and another token.
+     *
+     * @param other the other token
+     * @return the spacing between the tokens
+     */
+    default int spacing(Token<T> other) {
+        return other.span().start() - span().end();
+    }
+
+    /**
+     * Checks if this token is adjacent to another token.
+     *
+     * @param other the other token
+     * @return {@code true} if the tokens are adjacent, {@code false} otherwise
+     */
+    default boolean adjacent(Token<T> other) {
+        return spacing(other) == 0;
     }
 
 }

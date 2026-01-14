@@ -3,9 +3,9 @@ package me.tud.skriptinterpreter.lang;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Represents a span of text in a source file.
+ * Represents a span of text in a source origin.
  *
- * @param file        the path to the file
+ * @param origin      the origin
  * @param start       the absolute start index
  * @param end         the absolute end index
  * @param lineStart   the line number where the span starts
@@ -13,7 +13,7 @@ import org.jetbrains.annotations.Nullable;
  * @param columnStart the column number where the span starts
  * @param columnEnd   the column number where the span ends
  */
-public record SourceSpan(String file, int start, int end, int lineStart, int lineEnd, int columnStart, int columnEnd) {
+public record SourceSpan(String origin, int start, int end, int lineStart, int lineEnd, int columnStart, int columnEnd) {
 
     /**
      * Creates a string representation of the span by underlining it in the source code.

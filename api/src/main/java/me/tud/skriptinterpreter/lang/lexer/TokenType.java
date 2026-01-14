@@ -1,59 +1,15 @@
 package me.tud.skriptinterpreter.lang.lexer;
 
 /**
- * Represents the type of a lexical token.
+ * Represents the type of token.
+ *
+ * @param <T> the enum type
  */
-public enum TokenType {
+public interface TokenType<T extends Enum<T>> {
+
     /**
-     * A word or a sequence of non-symbol characters.
+     * @return {@code true} if this token type is terminal, {@code false} otherwise
      */
-    WORD,
-    /**
-     * A literal string.
-     */
-    STRING,
-    /**
-     * A numeric literal.
-     */
-    NUMBER,
-    /**
-     * A variable reference.
-     */
-    VARIABLE,
-    /**
-     * A colon ':'.
-     */
-    COLON,
-    /**
-     * A left parenthesis '('.
-     */
-    LPAREN,
-    /**
-     * A right parenthesis ')'.
-     */
-    RPAREN,
-    /**
-     * A comma ','.
-     */
-    COMMA,
-    /**
-     * A miscellaneous symbol.
-     */
-    SYMBOL,
-    /**
-     * A newline character or sequence.
-     */
-    NEWLINE,
-    /**
-     * An indentation (increase in leading whitespace).
-     */
-    INDENT,
-    /**
-     * A dedentation (decrease in leading whitespace).
-     */
-    DEDENT,
-    /**
-     * The end of the input.
-     */
-    EOF
+    boolean isTerminal();
+
 }

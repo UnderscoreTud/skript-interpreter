@@ -60,6 +60,13 @@ public class PatternTokenizerImpl extends AbstractTokenizer<PatternToken> implem
         };
     }
 
+    /**
+     * Reads a group (e.g., (group) or [optional group]).
+     *
+     * @param opening the opening character
+     * @param closing the closing character
+     * @return the group content
+     */
     private String readGroup(char opening, char closing) {
         Position start = position.backup();
         expectOrThrow(opening, span(start));
@@ -74,6 +81,11 @@ public class PatternTokenizerImpl extends AbstractTokenizer<PatternToken> implem
         throw createException("Unterminated group: Reached end of line before closing '" + closing + "'", span(start));
     }
 
+    /**
+     * Reads a placeholder (e.g., <placeholder> or <literal:placeholder>).
+     *
+     * @return the placeholder token
+     */
     private PatternToken readPlaceholder() {
         Position start = position.backup();
         expectOrThrow('<', span(start));
@@ -86,6 +98,11 @@ public class PatternTokenizerImpl extends AbstractTokenizer<PatternToken> implem
         return new PatternToken(PatternTokenType.PLACEHOLDER, input.substring(start.index, position.index), span(start));
     }
 
+    /**
+     * Reads a literal.
+     *
+     * @return the literal string, or {@code null} if no literal could be read
+     */
     private @Nullable String readLiteral() {
         Position start = position.backup();
         boolean escaped = false;
@@ -117,10 +134,22 @@ public class PatternTokenizerImpl extends AbstractTokenizer<PatternToken> implem
         return input.substring(start.index, position.index);
     }
 
+    /**
+     * Checks if a character can be escaped.
+     *
+     * @param c the character to check
+     * @return {@code true} if the character can be escaped, {@code false} otherwise
+     */
     private boolean canBeEscaped(char c) {
         return isSpecialCharacter(c) || c == '\\';
     }
 
+    /**
+     * Checks if a character is a special character in patterns.
+     *
+     * @param c the character to check
+     * @return {@code true} if the character is a special character, {@code false} otherwise
+     */
     private boolean isSpecialCharacter(char c) {
         return switch (c) {
             case '(', ')', '[', ']', '<', '>', '|', ':' -> true;

@@ -24,6 +24,7 @@ dependencies {
     annotationProcessor(libs.lombok)
     api(libs.jetbrains.annotations)
     implementation(libs.slf4j.api)
+    implementation(libs.apache.commons.lang3)
     implementation(libs.apache.commons.text)
 
     testCompileOnly(libs.lombok)

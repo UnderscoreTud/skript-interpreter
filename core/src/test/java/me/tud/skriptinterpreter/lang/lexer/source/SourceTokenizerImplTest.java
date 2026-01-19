@@ -55,12 +55,50 @@ class SourceTokenizerImplTest {
         SourceTokenizer tokenizer = new SourceTokenizerImpl("\"hello\" \"world with \"\"quotes\"\"\"");
         List<SourceToken> tokens = tokenizer.tokenize();
 
+        assertEquals(7, tokens.size());
+        assertEquals(SourceTokenType.STRING_START, tokens.get(0).type());
+        assertEquals("\"", tokens.get(0).text());
+        assertEquals(SourceTokenType.LITERAL_TEXT, tokens.get(1).type());
+        assertEquals("hello", tokens.get(1).text());
+        assertEquals(SourceTokenType.STRING_END, tokens.get(2).type());
+        assertEquals("\"", tokens.get(2).text());
+
+        assertEquals(SourceTokenType.STRING_START, tokens.get(3).type());
+        assertEquals("\"", tokens.get(3).text());
+        assertEquals(SourceTokenType.LITERAL_TEXT, tokens.get(4).type());
+        assertEquals("world with \"quotes\"", tokens.get(4).text());
+        assertEquals(SourceTokenType.STRING_END, tokens.get(5).type());
+        assertEquals("\"", tokens.get(5).text());
+
+        assertEquals(SourceTokenType.EOF, tokens.get(6).type());
+    }
+    
+    @Test
+    void testEmptyString() throws SourceTokenizationException {
+        SourceTokenizer tokenizer = new SourceTokenizerImpl("\"\"");
+        List<SourceToken> tokens = tokenizer.tokenize();
+
         assertEquals(3, tokens.size());
-        assertEquals(SourceTokenType.STRING, tokens.get(0).type());
-        assertEquals("\"hello\"", tokens.get(0).text());
-        assertEquals(SourceTokenType.STRING, tokens.get(1).type());
-        assertEquals("\"world with \"\"quotes\"\"\"", tokens.get(1).text());
+        assertEquals(SourceTokenType.STRING_START, tokens.get(0).type());
+        assertEquals(SourceTokenType.STRING_END, tokens.get(1).type());
+
         assertEquals(SourceTokenType.EOF, tokens.get(2).type());
+    }
+
+    @Test
+    void testStringifiedExpression() throws SourceTokenizationException {
+        SourceTokenizer tokenizer = new SourceTokenizerImpl("\"%expr%\"");
+        List<SourceToken> tokens = tokenizer.tokenize();
+
+        assertEquals(6, tokens.size());
+        assertEquals(SourceTokenType.STRING_START, tokens.get(0).type());
+        assertEquals(SourceTokenType.INTERPOLATION_START, tokens.get(1).type());
+        assertEquals(SourceTokenType.WORD, tokens.get(2).type());
+        assertEquals("expr", tokens.get(2).text());
+        assertEquals(SourceTokenType.INTERPOLATION_END, tokens.get(3).type());
+        assertEquals(SourceTokenType.STRING_END, tokens.get(4).type());
+
+        assertEquals(SourceTokenType.EOF, tokens.get(5).type());
     }
 
     @Test
@@ -68,12 +106,54 @@ class SourceTokenizerImplTest {
         SourceTokenizer tokenizer = new SourceTokenizerImpl("{var} {nested::%%expres%%%%sion%%%test%}");
         List<SourceToken> tokens = tokenizer.tokenize();
 
+        // {var} -> VARIABLE_START, LITERAL_TEXT(var), VARIABLE_END (3)
+        // {nested::%%expres%%%%sion%%%test%} -> VARIABLE_START, LITERAL_TEXT(nested::%expres%%sion%), INTERPOLATION_START(%), WORD(test), INTERPOLATION_END(%), VARIABLE_END (6)
+        // TOTAL: 3 + 6 + 1 (EOF) = 10 tokens
+
+        assertEquals(10, tokens.size());
+        assertEquals(SourceTokenType.VARIABLE_START, tokens.get(0).type());
+        assertEquals(SourceTokenType.LITERAL_TEXT, tokens.get(1).type());
+        assertEquals("var", tokens.get(1).text());
+        assertEquals(SourceTokenType.VARIABLE_END, tokens.get(2).type());
+
+        assertEquals(SourceTokenType.VARIABLE_START, tokens.get(3).type());
+        assertEquals(SourceTokenType.LITERAL_TEXT, tokens.get(4).type());
+        assertEquals("nested::%expres%%sion%", tokens.get(4).text());
+        assertEquals(SourceTokenType.INTERPOLATION_START, tokens.get(5).type());
+        assertEquals(SourceTokenType.WORD, tokens.get(6).type());
+        assertEquals("test", tokens.get(6).text());
+        assertEquals(SourceTokenType.INTERPOLATION_END, tokens.get(7).type());
+        assertEquals(SourceTokenType.VARIABLE_END, tokens.get(8).type());
+
+        assertEquals(SourceTokenType.EOF, tokens.get(9).type());
+    }
+
+    @Test
+    void testEmptyVariable() throws SourceTokenizationException {
+        SourceTokenizer tokenizer = new SourceTokenizerImpl("{}");
+        List<SourceToken> tokens = tokenizer.tokenize();
+
         assertEquals(3, tokens.size());
-        assertEquals(SourceTokenType.VARIABLE, tokens.get(0).type());
-        assertEquals("{var}", tokens.get(0).text());
-        assertEquals(SourceTokenType.VARIABLE, tokens.get(1).type());
-        assertEquals("{nested::%%expres%%%%sion%%%test%}", tokens.get(1).text());
+        assertEquals(SourceTokenType.VARIABLE_START, tokens.get(0).type());
+        assertEquals(SourceTokenType.VARIABLE_END, tokens.get(1).type());
+
         assertEquals(SourceTokenType.EOF, tokens.get(2).type());
+    }
+
+    @Test
+    void testVariableExpression() throws SourceTokenizationException {
+        SourceTokenizer tokenizer = new SourceTokenizerImpl("{%expr%}");
+        List<SourceToken> tokens = tokenizer.tokenize();
+
+        assertEquals(6, tokens.size());
+        assertEquals(SourceTokenType.VARIABLE_START, tokens.get(0).type());
+        assertEquals(SourceTokenType.INTERPOLATION_START, tokens.get(1).type());
+        assertEquals(SourceTokenType.WORD, tokens.get(2).type());
+        assertEquals("expr", tokens.get(2).text());
+        assertEquals(SourceTokenType.INTERPOLATION_END, tokens.get(3).type());
+        assertEquals(SourceTokenType.VARIABLE_END, tokens.get(4).type());
+
+        assertEquals(SourceTokenType.EOF, tokens.get(5).type());
     }
 
     @Test
@@ -147,10 +227,16 @@ class SourceTokenizerImplTest {
         SourceTokenizer tokenizer = new SourceTokenizerImpl("\"quote \"\" here and %expression%\"");
         List<SourceToken> tokens = tokenizer.tokenize();
 
-        assertEquals(2, tokens.size());
-        assertEquals(SourceTokenType.STRING, tokens.get(0).type());
-        assertEquals("\"quote \"\" here and %expression%\"", tokens.get(0).text());
-        assertEquals(SourceTokenType.EOF, tokens.get(1).type());
+        assertEquals(7, tokens.size());
+        assertEquals(SourceTokenType.STRING_START, tokens.get(0).type());
+        assertEquals(SourceTokenType.LITERAL_TEXT, tokens.get(1).type());
+        assertEquals("quote \" here and ", tokens.get(1).text());
+        assertEquals(SourceTokenType.INTERPOLATION_START, tokens.get(2).type());
+        assertEquals(SourceTokenType.WORD, tokens.get(3).type());
+        assertEquals("expression", tokens.get(3).text());
+        assertEquals(SourceTokenType.INTERPOLATION_END, tokens.get(4).type());
+        assertEquals(SourceTokenType.STRING_END, tokens.get(5).type());
+        assertEquals(SourceTokenType.EOF, tokens.get(6).type());
     }
 
     @Test
@@ -158,10 +244,20 @@ class SourceTokenizerImplTest {
         SourceTokenizer tokenizer = new SourceTokenizerImpl("\"outer %{var}% inner\"");
         List<SourceToken> tokens = tokenizer.tokenize();
 
-        assertEquals(2, tokens.size());
-        assertEquals(SourceTokenType.STRING, tokens.get(0).type());
-        assertEquals("\"outer %{var}% inner\"", tokens.get(0).text());
-        assertEquals(SourceTokenType.EOF, tokens.get(1).type());
+        assertEquals(10, tokens.size());
+        assertEquals(SourceTokenType.STRING_START, tokens.get(0).type());
+        assertEquals(SourceTokenType.LITERAL_TEXT, tokens.get(1).type());
+        assertEquals("outer ", tokens.get(1).text());
+        assertEquals(SourceTokenType.INTERPOLATION_START, tokens.get(2).type());
+        assertEquals(SourceTokenType.VARIABLE_START, tokens.get(3).type());
+        assertEquals(SourceTokenType.LITERAL_TEXT, tokens.get(4).type());
+        assertEquals("var", tokens.get(4).text());
+        assertEquals(SourceTokenType.VARIABLE_END, tokens.get(5).type());
+        assertEquals(SourceTokenType.INTERPOLATION_END, tokens.get(6).type());
+        assertEquals(SourceTokenType.LITERAL_TEXT, tokens.get(7).type());
+        assertEquals(" inner", tokens.get(7).text());
+        assertEquals(SourceTokenType.STRING_END, tokens.get(8).type());
+        assertEquals(SourceTokenType.EOF, tokens.get(9).type());
     }
 
     @Test
@@ -220,6 +316,7 @@ class SourceTokenizerImplTest {
         List<SourceToken> tokens = tokenizer.tokenize();
 
         // if, (, x, ), :, return, ,, {, var, }, EOF
+        assertEquals(11, tokens.size());
         assertEquals(SourceTokenType.WORD, tokens.get(0).type()); // if
         assertEquals(SourceTokenType.LPAREN, tokens.get(1).type());
         assertEquals(SourceTokenType.WORD, tokens.get(2).type()); // x
@@ -227,21 +324,34 @@ class SourceTokenizerImplTest {
         assertEquals(SourceTokenType.COLON, tokens.get(4).type());
         assertEquals(SourceTokenType.WORD, tokens.get(5).type()); // return
         assertEquals(SourceTokenType.COMMA, tokens.get(6).type());
-        assertEquals(SourceTokenType.VARIABLE, tokens.get(7).type());
-        assertEquals(SourceTokenType.EOF, tokens.get(8).type());
+        assertEquals(SourceTokenType.VARIABLE_START, tokens.get(7).type());
+        assertEquals(SourceTokenType.LITERAL_TEXT, tokens.get(8).type());
+        assertEquals("var", tokens.get(8).text());
+        assertEquals(SourceTokenType.VARIABLE_END, tokens.get(9).type());
+        assertEquals(SourceTokenType.EOF, tokens.get(10).type());
     }
 
     @Test
     void testExpressionWithEscapedPercentInString() throws SourceTokenizationException {
-        // "val: %%%{var}%%%" -> "val: %", expression {var}, "%"
+        // "%%%{var}%%%" -> STRING_START, LITERAL_TEXT(%), INTERPOLATION_START, VARIABLE_START, LITERAL_TEXT(var), VARIABLE_END, INTERPOLATION_END, LITERAL_TEXT(%), STRING_END
 
         SourceTokenizer tokenizer = new SourceTokenizerImpl("\"%%%{var}%%%\"");
         List<SourceToken> tokens = tokenizer.tokenize();
 
-        assertEquals(2, tokens.size());
-        assertEquals(SourceTokenType.STRING, tokens.get(0).type());
-        assertEquals("\"%%%{var}%%%\"", tokens.get(0).text());
-        assertEquals(SourceTokenType.EOF, tokens.get(1).type());
+        assertEquals(10, tokens.size());
+        assertEquals(SourceTokenType.STRING_START, tokens.get(0).type());
+        assertEquals(SourceTokenType.LITERAL_TEXT, tokens.get(1).type());
+        assertEquals("%", tokens.get(1).text());
+        assertEquals(SourceTokenType.INTERPOLATION_START, tokens.get(2).type());
+        assertEquals(SourceTokenType.VARIABLE_START, tokens.get(3).type());
+        assertEquals(SourceTokenType.LITERAL_TEXT, tokens.get(4).type());
+        assertEquals("var", tokens.get(4).text());
+        assertEquals(SourceTokenType.VARIABLE_END, tokens.get(5).type());
+        assertEquals(SourceTokenType.INTERPOLATION_END, tokens.get(6).type());
+        assertEquals(SourceTokenType.LITERAL_TEXT, tokens.get(7).type());
+        assertEquals("%", tokens.get(7).text());
+        assertEquals(SourceTokenType.STRING_END, tokens.get(8).type());
+        assertEquals(SourceTokenType.EOF, tokens.get(9).type());
     }
 
     @Test

@@ -107,7 +107,10 @@ public abstract class AbstractTokenizer<T extends Token<?>> implements Tokenizer
      * @return the character at the given offset without advancing
      */
     protected char peek(int offset) {
-        return input.charAt(position.index + offset);
+        char c = input.charAt(position.index + offset);
+        if (c == '\r' || c == '\n')
+            return NEW_LINE;
+        return c;
     }
 
     /**
@@ -118,7 +121,7 @@ public abstract class AbstractTokenizer<T extends Token<?>> implements Tokenizer
     protected char read() {
         char c = input.charAt(position.index++);
         if (c == '\r') {
-            if (canRead() && peek() == '\n')
+            if (canRead() && input.charAt(position.index) == '\n')
                 position.index++;
             position.line += 1;
             position.column = 1;
@@ -170,6 +173,17 @@ public abstract class AbstractTokenizer<T extends Token<?>> implements Tokenizer
          */
         public Position backup() {
             return new Position(index, line, column);
+        }
+
+        /**
+         * Applies the values of another position to this one.
+         *
+         * @param position the position to apply
+         */
+        public void apply(Position position) {
+            this.index = position.index;
+            this.line = position.line;
+            this.column = position.column;
         }
 
     }

@@ -1,7 +1,10 @@
 package me.tud.skriptinterpreter.lang.lexer.source;
 
+import lombok.Getter;
+import lombok.experimental.Delegate;
 import me.tud.skriptinterpreter.lang.SourceSpan;
 import me.tud.skriptinterpreter.lang.lexer.AbstractTokenizer;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.jetbrains.annotations.Nullable;
@@ -14,6 +17,7 @@ import java.util.*;
 public class SourceTokenizerImpl extends AbstractTokenizer<SourceToken> implements SourceTokenizer {
 
     private final Deque<SourceToken> pending = new ArrayDeque<>();
+    private final Deque<StateContext> states = new ArrayDeque<>();
     private String indentation;
     private int indentationLevel;
     private int parenDepth;
@@ -37,9 +41,35 @@ public class SourceTokenizerImpl extends AbstractTokenizer<SourceToken> implemen
         super(origin, input);
     }
 
+    @Override
     protected SourceToken nextToken() {
         if (!pending.isEmpty())
             return pending.poll();
+
+        if (!states.isEmpty()) {
+            StateContext state = states.element();
+            if (!canRead())
+                throw createException(state.unterminated(null), span(state.start()));
+
+            if (state.state() == State.IN_INTERPOLATION && readWhitespace() != null)
+                return nextToken();
+
+            char c = peek();
+            if (c == NEW_LINE)
+                throw createException(state.unterminated(c), span(state.start()));
+
+            if (c == state.closing()) {
+                Position start = position.backup();
+                states.pop();
+                return new SourceToken(state.closingTokenType(), String.valueOf(read()), span(start));
+            }
+
+            if (state.state() == State.IN_STRING || state.state() == State.IN_VARIABLE) {
+                return nextLiteralPart();
+            } else {
+                return nextSourceToken();
+            }
+        }
 
         if (!canRead()) {
             if (indentationLevel-- > 0)
@@ -53,11 +83,11 @@ public class SourceTokenizerImpl extends AbstractTokenizer<SourceToken> implemen
 
         Position start = position.backup();
 
-        if (position.column == 1 && parenDepth == 0 && handleIndentation()) {
+        if (position.column == 1 && parenDepth == 0 && handleIndentation())
             return nextToken();
-        }
 
-        readWhitespace();
+        if (readWhitespace() != null)
+            return nextToken();
 
         if (handleComment()) {
             if (start.column == 1)
@@ -65,8 +95,16 @@ public class SourceTokenizerImpl extends AbstractTokenizer<SourceToken> implemen
             return nextToken();
         }
 
-        start = position.backup();
-        
+        return nextSourceToken();
+    }
+
+    /**
+     * Reads the next source token.
+     *
+     * @return the next source token
+     */
+    private SourceToken nextSourceToken() {
+        Position start = position.backup();
         char c = peek();
         switch (c) {
             case ':' -> {
@@ -84,15 +122,21 @@ public class SourceTokenizerImpl extends AbstractTokenizer<SourceToken> implemen
                 return new SourceToken(SourceTokenType.COMMA, String.valueOf(read()), span(start));
             }
             case '"' -> {
-                return new SourceToken(SourceTokenType.STRING, readString(), span(start));
+                states.push(State.IN_STRING.at(start));
+                return new SourceToken(SourceTokenType.STRING_START, String.valueOf(read()), span(start));
             }
             case '{' -> {
-                return new SourceToken(SourceTokenType.VARIABLE, readVariable(), span(start));
+                states.push(State.IN_VARIABLE.at(start));
+                return new SourceToken(SourceTokenType.VARIABLE_START, String.valueOf(read()), span(start));
             }
         }
 
-        if (isDigit(c) || c == '-' || c == '.')
-            return readNumber();
+        if (isDigit(c) || c == '-' || c == '.') {
+            SourceToken token = readNumber();
+            if (token != null)
+                return token;
+            position.apply(start);
+        }
 
         while (canRead() && isWordPart(peek()))
             skip();
@@ -103,68 +147,51 @@ public class SourceTokenizerImpl extends AbstractTokenizer<SourceToken> implemen
         return new SourceToken(SourceTokenType.SYMBOL, String.valueOf(read()), span(start));
     }
 
-    private String readString() {
-        return readQuoted("string", '"', '"');
-    }
-
-    private String readVariable() {
-        return readQuoted("variable", '{', '}');
-    }
-
-    private String readQuoted(String type, char opening, char closing) throws SourceTokenizationException {
+    /**
+     * Reads the next part of a literal (string or variable reference).
+     *
+     * @return the next literal part token
+     */
+    private SourceToken nextLiteralPart() {
         Position start = position.backup();
-        expectOrThrow(opening, span(start));
+        StateContext state = states.element();
         StringBuilder builder = new StringBuilder();
-        boolean inExpression = false;
-        Position expressionStart = null;
         while (canRead()) {
             char c = peek();
-
             if (c == NEW_LINE)
                 break;
 
-            if ((c == '"' || c == '{') && inExpression) {
-                builder.append(c == '"' ? readString() : readVariable());
-                if (!canRead())
-                    break;
+            if (state.isEscapable(c) && canRead(1) && peek(1) == c) {
+                builder.append(read());
+                skip();
                 continue;
             }
 
-            if (c == closing) {
-                if (opening == closing && canRead(1) && peek(1) == closing) {
-                    builder.append(read()); // read first quote
-                    builder.append(read()); // read second quote
-                    continue;
+            if (c == state.closing() || c == '%') {
+                SourceSpan contentSpan = span(start);
+                if (c == '%') {
+                    Position exprStart = position.backup();
+                    states.push(State.IN_INTERPOLATION.at(exprStart));
+                    pending.add(new SourceToken(SourceTokenType.INTERPOLATION_START, String.valueOf(read()), span(exprStart)));
                 }
-                skip(); // skip closing quote
-                return opening + builder.toString() + closing;
+                if (builder.isEmpty())
+                    return nextToken();
+                return new SourceToken(SourceTokenType.LITERAL_TEXT, builder.toString(), contentSpan);
             }
 
-            if (c == '%') {
-                if (canRead(1) && peek(1) == '%') {
-                    builder.append(read()); // read first %
-                    builder.append(read()); // read second %
-                    continue;
-                }
-                inExpression = !inExpression;
-                if (inExpression)
-                    expressionStart = position.backup();
-            }
             builder.append(read());
         }
-        if (inExpression)
-            throw createException("Unterminated expression: If you meant to write a single (%), then double it to escape it (%%)", span(expressionStart));
-        String message = "Unterminated " + type + ": ";
-        if (canRead()) {
-            message += "Expected closing '" + closing + "', got '" + StringEscapeUtils.escapeJava(String.valueOf(peek())) + "'";
-        } else {
-            message += "Reached end of line before closing '" + closing + "'";
-        }
-        throw createException(message, span(start));
+        throw createException(state.unterminated(canRead() ? peek() : null), span(state.start()));
     }
 
-    private SourceToken readNumber() {
+    /**
+     * Reads a number token if possible.
+     *
+     * @return the number token, or {@code null} if no number could be read
+     */
+    private @Nullable SourceToken readNumber() {
         Position start = position.backup();
+        boolean hasDigit = false;
         if (peek() == '-')
             skip();
         boolean hasDecimal = false;
@@ -179,15 +206,19 @@ public class SourceTokenizerImpl extends AbstractTokenizer<SourceToken> implemen
             }
             if (!isDigit(c))
                 break;
+            hasDigit = true;
             skip();
         }
+        if (!hasDigit)
+            return null;
         return new SourceToken(SourceTokenType.NUMBER, input.substring(start.index, position.index), span(start));
     }
 
-    private boolean isDigit(char c) {
-        return '0' <= c && c <= '9';
-    }
-
+    /**
+     * Skips over comments if present.
+     *
+     * @return {@code true} if a comment was handled, {@code false} otherwise
+     */
     private boolean handleComment() {
         if (peek() != '#')
             return false;
@@ -202,9 +233,14 @@ public class SourceTokenizerImpl extends AbstractTokenizer<SourceToken> implemen
         return true;
     }
 
+    /**
+     * Reads consecutive newline characters.
+     *
+     * @return the newline token, or {@code null} if no newlines were found
+     */
     private @Nullable SourceToken readNewLines() {
         Position start = position.backup();
-        while (canRead() && isNewLine(peek()))
+        while (canRead() && peek() == NEW_LINE)
             skip();
 
         if (start.index != position.index)
@@ -212,10 +248,12 @@ public class SourceTokenizerImpl extends AbstractTokenizer<SourceToken> implemen
         return null;
     }
 
-    private boolean isNewLine(char c) {
-        return c == NEW_LINE;
-    }
-
+    /**
+     * Handles indentation and dedentation.
+     *
+     * @return {@code true} if indentation was handled, {@code false} otherwise
+     * @throws SourceTokenizationException if the indentation is invalid
+     */
     private boolean handleIndentation() throws SourceTokenizationException {
         Position start = position.backup();
         String indentation = readWhitespace();
@@ -259,6 +297,11 @@ public class SourceTokenizerImpl extends AbstractTokenizer<SourceToken> implemen
         return true;
     }
 
+    /**
+     * Reads horizontal whitespace (spaces and tabs).
+     *
+     * @return the whitespace string, or {@code null} if no whitespace was found
+     */
     private @Nullable String readWhitespace() {
         int start = position.index;
         while (canRead() && isWhitespace(peek()))
@@ -266,8 +309,12 @@ public class SourceTokenizerImpl extends AbstractTokenizer<SourceToken> implemen
         return start != position.index ? input.substring(start, position.index) : null;
     }
 
-    private boolean isWhitespace(char c) {
-        return Character.isWhitespace(c) && !isNewLine(c);
+    private static boolean isDigit(char c) {
+        return '0' <= c && c <= '9';
+    }
+
+    private static boolean isWhitespace(char c) {
+        return Character.isWhitespace(c) && c != NEW_LINE;
     }
 
     private static boolean isWordPart(char c) {
@@ -278,5 +325,57 @@ public class SourceTokenizerImpl extends AbstractTokenizer<SourceToken> implemen
     protected SourceTokenizationException createException(String message, SourceSpan span) {
         return new SourceTokenizationException(message, span, input);
     }
+
+    @Getter
+    private enum State {
+        IN_STRING("string", '"', SourceTokenType.STRING_START, SourceTokenType.STRING_END, '"', '%'),
+        IN_VARIABLE("variable reference", '{', '}', SourceTokenType.VARIABLE_START, SourceTokenType.VARIABLE_END, '%'),
+        IN_INTERPOLATION("expression", '%', SourceTokenType.INTERPOLATION_START, SourceTokenType.INTERPOLATION_END) {
+            @Override
+            public String unterminated(@Nullable Character next) {
+                return super.unterminated(next) + ". If you meant to write a single (%), then double it to escape it (%%)";
+            }
+        };
+
+        private final String type;
+        private final char opening, closing;
+        private final SourceTokenType openingTokenType, closingTokenType;
+        private final char[] escapable;
+
+        State(String type, char delimiter, SourceTokenType openingTokenType, SourceTokenType closingTokenType, char... escapable) {
+            this(type, delimiter, delimiter, openingTokenType, closingTokenType, escapable);
+        }
+
+        State(String type, char opening, char closing, SourceTokenType openingTokenType, SourceTokenType closingTokenType, char... escapable) {
+            this.type = type;
+            this.opening = opening;
+            this.closing = closing;
+            this.openingTokenType = openingTokenType;
+            this.closingTokenType = closingTokenType;
+            this.escapable = escapable;
+        }
+
+        public boolean isEscapable(char c) {
+            return ArrayUtils.contains(escapable, c);
+        }
+
+        public StateContext at(Position position) {
+            return new StateContext(this, position);
+        }
+
+        public String unterminated(@Nullable Character next) {
+            String message = "Unterminated " + type + ": ";
+            if (next == null) {
+                message += "Reached end of file before closing '" + closing + "'";
+            } else if (next == NEW_LINE) {
+                message += "Reached end of line before closing '" + closing + "'";
+            } else {
+                message += "Expected closing '" + closing + "', got '" + StringEscapeUtils.escapeJava(String.valueOf(next)) + "'";
+            }
+            return message;
+        }
+    }
+
+    private record StateContext(@Delegate State state, Position start) {}
 
 }

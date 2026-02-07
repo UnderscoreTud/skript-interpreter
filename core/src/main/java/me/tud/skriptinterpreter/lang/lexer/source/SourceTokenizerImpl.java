@@ -222,11 +222,20 @@ public class SourceTokenizerImpl extends AbstractTokenizer<SourceToken> implemen
     private boolean handleComment() {
         if (peek() != '#')
             return false;
+
         if (canRead(2) && peek(1) == '#' && peek(2) == '#') {
-            int delimiter = input.indexOf("###", position.index + 3);
-            position.index = delimiter == -1 ? input.length() - 1 : delimiter + 3;
+            for (int i = 0; i < 3; i++)
+                skip(); // Skip opening delimiter
+
+            while (canRead(2) && !(peek() == '#' && peek(1) == '#' && peek(2) == '#')) {
+                skip();
+            }
+            // Skip closing delimiter
+            skip();
+            skip();
             return true;
         }
+
         do {
             skip();
         } while (canRead() && (peek() != '\r' && peek() != '\n'));
@@ -275,8 +284,8 @@ public class SourceTokenizerImpl extends AbstractTokenizer<SourceToken> implemen
             level = StringUtils.countMatches(indentation, this.indentation);
             if (this.indentation.length() * level != indentation.length()) {
                 throw createException("Indentation must be made of repeated \""
-                        + StringEscapeUtils.escapeJava(this.indentation)
-                        + "\" but got \"" + StringEscapeUtils.escapeJava(indentation) + "\"", span(start));
+                        + readableIndentation(this.indentation)
+                        + "\" but got \"" + readableIndentation(indentation) + "\"", span(start));
             }
         }
         int diff = level - indentationLevel;
@@ -295,6 +304,10 @@ public class SourceTokenizerImpl extends AbstractTokenizer<SourceToken> implemen
         for (int i = 0; i < -diff; i++)
             pending.add(new SourceToken(SourceTokenType.DEDENT, indentation == null ? "" : indentation, span(start)));
         return true;
+    }
+    
+    private static String readableIndentation(String indentation) {
+        return indentation.replace(' ', '_').replace("\t", "->");
     }
 
     /**

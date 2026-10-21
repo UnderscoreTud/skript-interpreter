@@ -6,6 +6,8 @@ slf4j = "2.0.17"
 apache-commons-lang3 = "3.20.0"
 apache-commons-text = "1.15.0"
 
+guava = "33.5.0-jre"
+
 junit-jupiter = "5.13.4"
 
 [libraries]
@@ -15,6 +17,8 @@ slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
 
 apache-commons-lang3 = { module = "org.apache.commons:commons-lang3", version.ref = "apache-commons-lang3" }
 apache-commons-text = { module = "org.apache.commons:commons-text", version.ref = "apache-commons-text" }
+
+guava = { module = "com.google.guava:guava", version.ref = "guava" }
 
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit-jupiter" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }

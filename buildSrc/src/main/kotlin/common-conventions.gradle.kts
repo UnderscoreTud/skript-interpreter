@@ -11,7 +11,7 @@ version = "1.0-SNAPSHOT"
 
 java {
     toolchain {
-        languageVersion.set(JavaLanguageVersion.of(21))
+        languageVersion.set(JavaLanguageVersion.of(25))
     }
 }
 
@@ -26,6 +26,7 @@ dependencies {
     implementation(libs.slf4j.api)
     implementation(libs.apache.commons.lang3)
     implementation(libs.apache.commons.text)
+    implementation(libs.guava)
 
     testCompileOnly(libs.lombok)
     testAnnotationProcessor(libs.lombok)
